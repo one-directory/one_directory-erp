@@ -1,0 +1,731 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+
+enum PropertyType {
+  Homestay
+  Resort
+  Beach_Resort   @map("Beach Resort")
+  Resort_Stay    @map("Resort / Stay")
+  Camp_Cottages  @map("Camp / Cottages")
+  Riverside_Stay @map("Riverside Stay")
+  Villa
+  Hotel
+  Apartments
+}
+
+enum PropertyStatus {
+  Active
+  Under_Renovation @map("Under Renovation")
+  Seasonal_Pause   @map("Seasonal Pause")
+}
+
+enum UnitStatus {
+  Available
+  Occupied
+  Dirty
+  Cleaning
+  Inspection
+  Maintenance
+  Blocked
+  Out_of_Service @map("Out of Service")
+}
+
+enum GuestStatus {
+  Regular
+  VIP
+  Blacklisted
+  First_time  @map("First-time")
+}
+
+enum LeadStatus {
+  New
+  Contacted
+  Interested
+  Quotation_Sent @map("Quotation Sent")
+  Follow_up      @map("Follow-up")
+  Confirmed
+  Not_Interested @map("Not Interested")
+  No_Response    @map("No Response")
+  Lost
+}
+
+enum LeadSource {
+  Phone_Call @map("Phone Call")
+  WhatsApp
+  Website
+  Walk_in    @map("Walk-in")
+  Referral
+  Instagram
+}
+
+enum FollowUpType {
+  Phone_Call @map("Phone Call")
+  WhatsApp
+  Email
+  SMS
+  In_Person  @map("In Person")
+  Other
+}
+
+enum FollowUpUrgency {
+  Overdue
+  Due_Today @map("Due Today")
+  Tomorrow
+  This_Week @map("This Week")
+}
+
+enum FollowUpStatus {
+  Pending
+  Completed
+  Overdue
+  Rescheduled
+}
+
+enum ReservationStatus {
+  Pending
+  Confirmed
+  Checked_In  @map("Checked In")
+  In_House    @map("In House")
+  Checked_Out @map("Checked Out")
+  Completed
+  Cancelled
+  No_Show     @map("No Show")
+}
+
+enum BookingSource {
+  Website
+  Walk_in     @map("Walk-in")
+  Phone
+  WhatsApp
+  Booking_com @map("Booking.com")
+  Agoda
+  Airbnb
+  MakeMyTrip
+  Expedia
+  Other
+}
+
+enum PaymentMethod {
+  Cash
+  UPI
+  Credit_Card     @map("Credit Card")
+  Debit_Card      @map("Debit Card")
+  Bank_Transfer   @map("Bank Transfer")
+  Payment_Gateway @map("Payment Gateway")
+  Other
+}
+
+enum PaymentStatus {
+  Pending
+  Success
+  Failed
+  Refunded
+  Partially_Refunded @map("Partially Refunded")
+}
+
+enum InvoiceStatus {
+  Paid
+  Unpaid
+  Overdue
+}
+
+enum HousekeepingTaskType {
+  Checkout_Cleaning @map("Checkout Cleaning")
+  Regular_Cleaning  @map("Regular Cleaning")
+  Deep_Cleaning     @map("Deep Cleaning")
+  Linen_Change      @map("Linen Change")
+  Inspection
+}
+
+enum HousekeepingStatus {
+  Pending
+  Cleaning
+  Inspection
+  Completed
+}
+
+enum Priority {
+  Low
+  Normal
+  Medium
+  High
+  Urgent
+}
+
+enum MaintenanceStatus {
+  Open
+  Assigned
+  In_Progress       @map("In Progress")
+  Waiting_for_Parts @map("Waiting for Parts")
+  Resolved
+  Closed
+  Cancelled
+}
+
+enum StaffDepartment {
+  Reception
+  Concierge
+  Operations
+  Accounts
+}
+
+enum StaffTaskStatus {
+  Pending
+  In_Progress @map("In Progress")
+  Completed
+}
+
+enum ExpenseCategory {
+  Electricity
+  Water
+  Internet
+  Laundry
+  Housekeeping
+  Maintenance
+  Supplies
+  Staff
+  Marketing
+  OTA_Commission @map("OTA Commission")
+  Transportation
+  Food
+  Other
+}
+
+enum ExpenseStatus {
+  Paid
+  Pending
+  Approved
+}
+
+enum SettlementStatus {
+  Draft
+  Approved
+  Paid
+  Partially_Paid @map("Partially Paid")
+}
+
+enum ReviewPlatform {
+  Google
+  Tripadvisor
+  Booking_com @map("Booking.com")
+  Agoda
+  Airbnb
+}
+
+enum ReviewResponseStatus {
+  Responded
+  Pending
+}
+
+// -----------------------------------------------------------------------------
+// MODELS
+// -----------------------------------------------------------------------------
+
+model Property {
+  id               String         @id @default(cuid())
+  name             String
+  type             PropertyType
+  location         String
+  contact          String
+  totalUnits       Int            @default(0)
+  occupancyRate    Float          @default(0)
+  todayArrivals    Int            @default(0)
+  todayDepartures  Int            @default(0)
+  revenueThisMonth Float          @default(0)
+  status           PropertyStatus @default(Active)
+  ownerName        String
+  ownerEmail       String
+  ownerPhone       String
+  description      String         @db.Text
+  amenities        String[]       @default([])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  unitTypes          UnitType[]
+  units              Unit[]
+  leads              Lead[]
+  reservations       Reservation[]
+  quotations         Quotation[]
+  payments           Payment[]
+  invoices           Invoice[]
+  housekeepingTasks  HousekeepingTask[]
+  maintenanceTickets MaintenanceTicket[]
+  staffTasks         StaffTask[]
+  expenses           Expense[]
+  ownerSettlements   OwnerSettlement[]
+  reviews            Review[]
+  followUps          FollowUp[]
+
+  @@map("properties")
+}
+
+model UnitType {
+  id               String   @id @default(cuid())
+  propertyId       String
+  propertyName     String
+  name             String
+  capacity         Int      @default(2)
+  bedConfiguration String
+  baseRate         Float
+  numberOfUnits    Int      @default(1)
+  amenities        String[] @default([])
+  status           String   @default("Active")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  units    Unit[]
+
+  @@map("unit_types")
+}
+
+model Unit {
+  id                   String     @id @default(cuid())
+  propertyId           String
+  propertyName         String
+  unitTypeId           String
+  unitTypeName         String
+  number               String
+  name                 String
+  floor                String     @default("1")
+  status               UnitStatus @default(Available)
+  currentReservationId String?
+  currentGuestName     String?
+  currentCheckOut      String?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  property           Property            @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  unitType           UnitType            @relation(fields: [unitTypeId], references: [id], onDelete: Cascade)
+  reservations       Reservation[]
+  housekeepingTasks  HousekeepingTask[]
+  maintenanceTickets MaintenanceTicket[]
+
+  @@map("units")
+}
+
+model Guest {
+  id            String      @id @default(cuid())
+  name          String
+  phone         String
+  email         String
+  idProofNumber String?
+  vip           Boolean     @default(false)
+  totalStays    Int         @default(0)
+  lastStayDate  String?
+  totalSpend    Float       @default(0)
+  preferences   String[]    @default([])
+  status        GuestStatus @default(Regular)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  leads        Lead[]
+  reservations Reservation[]
+  followUps    FollowUp[]
+  callLogs     CallLog[]
+
+  @@map("guests")
+}
+
+model Lead {
+  id               String     @id @default(cuid())
+  leadNumber       String     @unique
+  guestId          String?
+  guestName        String
+  guestPhone       String
+  guestEmail       String
+  propertyId       String
+  propertyName     String
+  checkIn          String
+  checkOut         String
+  guestsCount      Int        @default(1)
+  estimatedValue   Float      @default(0)
+  source           LeadSource @default(Phone_Call)
+  assignedTo       String
+  status           LeadStatus @default(New)
+  nextFollowUpDate String
+  notes            String     @db.Text
+  quotationId      String?
+  reservationId    String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  property     Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  guest        Guest?        @relation(fields: [guestId], references: [id], onDelete: SetNull)
+  followUps    FollowUp[]
+  callLogs     CallLog[]
+  quotations   Quotation[]
+  reservations Reservation[]
+
+  @@map("leads")
+}
+
+model FollowUp {
+  id            String          @id @default(cuid())
+  leadId        String?
+  guestId       String?
+  guestName     String
+  guestPhone    String
+  propertyId    String
+  propertyName  String
+  type          FollowUpType    @default(Phone_Call)
+  purpose       String
+  scheduledDate String
+  scheduledTime String
+  assignedTo    String
+  status        FollowUpStatus  @default(Pending)
+  urgency       FollowUpUrgency @default(Due_Today)
+  notes         String          @db.Text
+  completedAt   DateTime?
+  callOutcome   String?
+  callDuration  String?
+  nextAction    String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  lead     Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  guest    Guest?   @relation(fields: [guestId], references: [id], onDelete: SetNull)
+
+  @@map("follow_ups")
+}
+
+model CallLog {
+  id        String   @id @default(cuid())
+  leadId    String?
+  guestId   String?
+  guestName String
+  date      String
+  time      String
+  direction String   @default("Outbound")
+  duration  String
+  staff     String
+  outcome   String
+  notes     String   @db.Text
+  createdAt DateTime @default(now())
+
+  lead  Lead?  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  guest Guest? @relation(fields: [guestId], references: [id], onDelete: SetNull)
+
+  @@map("call_logs")
+}
+
+model Quotation {
+  id               String   @id @default(cuid())
+  quotationNumber  String   @unique
+  leadId           String?
+  guestName        String
+  guestPhone       String
+  guestEmail       String
+  propertyId       String
+  propertyName     String
+  roomTypeName     String
+  checkIn          String
+  checkOut         String
+  nights           Int      @default(1)
+  guestsCount      Int      @default(1)
+  roomCharge       Float    @default(0)
+  extraGuestCharge Float    @default(0)
+  discount         Float    @default(0)
+  tax              Float    @default(0)
+  total            Float    @default(0)
+  validUntil       String
+  status           String   @default("Sent")
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  lead     Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@map("quotations")
+}
+
+model Reservation {
+  id              String            @id @default(cuid())
+  bookingId       String            @unique
+  guestId         String
+  guestName       String
+  guestPhone      String
+  guestEmail      String
+  propertyId      String
+  propertyName    String
+  unitId          String
+  unitNumber      String
+  unitTypeName    String
+  checkIn         String
+  checkOut        String
+  nights          Int               @default(1)
+  guestsCount     Int               @default(1)
+  source          BookingSource     @default(Website)
+  rate            Float             @default(0)
+  discount        Float             @default(0)
+  tax             Float             @default(0)
+  total           Float             @default(0)
+  paid            Float             @default(0)
+  balance         Float             @default(0)
+  status          ReservationStatus @default(Confirmed)
+  specialRequests String?           @db.Text
+  quotationId     String?
+  leadId          String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  property Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  unit     Unit      @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  guest    Guest     @relation(fields: [guestId], references: [id], onDelete: Restrict)
+  lead     Lead?     @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  payments Payment[]
+  invoices Invoice[]
+
+  @@map("reservations")
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  paymentId       String        @unique
+  reservationId   String
+  bookingId       String
+  guestName       String
+  propertyId      String
+  propertyName    String
+  amount          Float
+  method          PaymentMethod @default(UPI)
+  date            String
+  time            String
+  status          PaymentStatus @default(Success)
+  referenceNumber String
+  collectedBy     String
+  createdAt       DateTime      @default(now())
+
+  property    Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  invoiceNumber   String        @unique
+  reservationId   String
+  bookingId       String
+  guestName       String
+  guestPhone      String
+  guestEmail      String
+  propertyId      String
+  propertyName    String
+  propertyAddress String
+  propertyGstin   String
+  invoiceDate     String
+  dueDate         String
+  subtotal        Float         @default(0)
+  discount        Float         @default(0)
+  tax             Float         @default(0)
+  total           Float         @default(0)
+  paid            Float         @default(0)
+  balance         Float         @default(0)
+  status          InvoiceStatus @default(Unpaid)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  property    Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  reservation Reservation   @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  items       InvoiceItem[]
+
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Int      @default(1)
+  rate        Float    @default(0)
+  amount      Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_items")
+}
+
+model HousekeepingTask {
+  id            String               @id @default(cuid())
+  propertyId    String
+  propertyName  String
+  unitId        String
+  unitNumber    String
+  taskType      HousekeepingTaskType @default(Regular_Cleaning)
+  assignedTo    String
+  scheduledTime String
+  status        HousekeepingStatus   @default(Pending)
+  priority      Priority             @default(Normal)
+  notes         String?              @db.Text
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  unit     Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@map("housekeeping_tasks")
+}
+
+model MaintenanceTicket {
+  id              String            @id @default(cuid())
+  ticketNumber    String            @unique
+  propertyId      String
+  propertyName    String
+  unitId          String
+  unitNumber      String
+  issue           String
+  description     String            @db.Text
+  priority        Priority          @default(Normal)
+  assignedTo      String
+  status          MaintenanceStatus @default(Open)
+  estimatedCost   Float?
+  resolutionNotes String?           @db.Text
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  unit     Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@map("maintenance_tickets")
+}
+
+model StaffTask {
+  id           String          @id @default(cuid())
+  title        String
+  propertyId   String
+  propertyName String
+  assignedTo   String
+  priority     Priority        @default(Normal)
+  due          String
+  status       StaffTaskStatus @default(Pending)
+  department   StaffDepartment @default(Reception)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("staff_tasks")
+}
+
+model Expense {
+  id           String          @id @default(cuid())
+  date         String
+  propertyId   String
+  propertyName String
+  category     ExpenseCategory @default(Supplies)
+  vendor       String
+  description  String
+  amount       Float
+  status       ExpenseStatus   @default(Paid)
+  paymentMode  String          @default("UPI")
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("expenses")
+}
+
+model OwnerSettlement {
+  id               String           @id @default(cuid())
+  settlementNumber String           @unique
+  propertyId       String
+  propertyName     String
+  ownerName        String
+  ownerEmail       String
+  period           String
+  grossRevenue     Float            @default(0)
+  taxes            Float            @default(0)
+  otaCommission    Float            @default(0)
+  otherDeductions  Float            @default(0)
+  netRevenue       Float            @default(0)
+  managementFeePct Float            @default(15)
+  managementFee    Float            @default(0)
+  ownerShare       Float            @default(0)
+  amountPaid       Float            @default(0)
+  balance          Float            @default(0)
+  status           SettlementStatus @default(Draft)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  property Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  items    SettlementItem[]
+
+  @@map("owner_settlements")
+}
+
+model SettlementItem {
+  id           String   @id @default(cuid())
+  settlementId String
+  description  String
+  type         String // "revenue" | "deduction"
+  amount       Float    @default(0)
+  createdAt    DateTime @default(now())
+
+  settlement OwnerSettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  @@map("settlement_items")
+}
+
+model Review {
+  id             String               @id @default(cuid())
+  guestName      String
+  propertyId     String
+  propertyName   String
+  platform       ReviewPlatform       @default(Google)
+  rating         Float                @default(5)
+  date           String
+  comment        String               @db.Text
+  responseStatus ReviewResponseStatus @default(Pending)
+  responseText   String?              @db.Text
+  responseDate   String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  date        String
+  time        String
+  user        String
+  action      String
+  module      String
+  recordId    String
+  details     String   @db.Text
+  beforeValue String?  @db.Text
+  afterValue  String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  type      String // "booking" | "followup" | "payment" | "housekeeping" | "maintenance" | "system"
+  time      String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
