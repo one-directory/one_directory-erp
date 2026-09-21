@@ -227,6 +227,14 @@ enum ReviewResponseStatus {
   Pending
 }
 
+enum UserRole {
+  ADMIN
+  PROPERTY_MANAGER
+  FRONT_DESK
+  OPERATIONS
+  ACCOUNTANT
+}
+
 // -----------------------------------------------------------------------------
 // MODELS
 // -----------------------------------------------------------------------------
@@ -728,4 +736,21 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@map("notifications")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         UserRole  @default(PROPERTY_MANAGER)
+  department   String?
+  phone        String?
+  avatarUrl    String?
+  isActive     Boolean   @default(true)
+  propertyIds  String[]  @default([])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("users")
 }

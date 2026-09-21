@@ -463,3 +463,66 @@ export interface Notification {
   read: boolean;
   link?: string;
 }
+
+// -----------------------------------------------------------------------------
+// OTA CHANNEL MANAGER & SYNC SIMULATOR
+// -----------------------------------------------------------------------------
+
+export type OTAChannel = 'Airbnb' | 'Booking.com' | 'Agoda' | 'MakeMyTrip';
+
+export type ChannelSyncStatus = 'Connected' | 'Syncing' | 'Error' | 'Paused';
+
+export interface ChannelConnection {
+  id: string;
+  channel: OTAChannel;
+  propertyId: string;
+  propertyName: string;
+  status: ChannelSyncStatus;
+  syncMode: 'Two-Way (API)' | 'iCal Only';
+  lastSyncAt: string;
+  commissionRate: number; // percentage, e.g. 15 for 15%
+  rateMarkupPercentage: number; // percentage, e.g. 10 for +10%
+  minStay: number;
+  autoStopSell: boolean;
+  activeListingsCount: number;
+  iCalExportUrl: string;
+  iCalImportUrl?: string;
+  accountEmail?: string;
+}
+
+export type ChannelSyncEventType =
+  | 'INVENTORY_BLOCK'
+  | 'INVENTORY_RELEASE'
+  | 'RATE_PUSH'
+  | 'INCOMING_BOOKING'
+  | 'BOOKING_CANCELLED'
+  | 'STOP_SELL';
+
+export interface ChannelSyncEvent {
+  id: string;
+  timestamp: string;
+  channel: OTAChannel;
+  propertyName: string;
+  eventType: ChannelSyncEventType;
+  status: 'Success' | 'Pending' | 'Failed';
+  bookingReference?: string;
+  details: string;
+  payloadJson?: string;
+  latencyMs?: number;
+}
+
+export interface ChannelRateRule {
+  id: string;
+  propertyId: string;
+  propertyName: string;
+  unitTypeId: string;
+  unitTypeName: string;
+  baseRate: number;
+  rates: Record<OTAChannel, {
+    markupPercentage: number;
+    channelRate: number;
+    commissionRate: number;
+    netPayout: number;
+  }>;
+}
+

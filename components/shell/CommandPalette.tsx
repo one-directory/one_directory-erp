@@ -16,6 +16,8 @@ import {
   Wrench,
 } from 'lucide-react';
 import { useERP } from '@/context/ERPContext';
+import { useAuth } from '@/context/AuthContext';
+import { hasModuleAccess, canPerformAction } from '@/lib/rbac';
 import { NavigationModule } from './Sidebar';
 import { Badge } from '@/components/ui/Badge';
 
@@ -37,6 +39,9 @@ export function CommandPalette({ onNavigate }: CommandPaletteProps) {
     openGlobalModal,
   } = useERP();
 
+  const { user } = useAuth();
+  const role = user?.role;
+
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -45,47 +50,59 @@ export function CommandPalette({ onNavigate }: CommandPaletteProps) {
     }
   }, [isCommandPaletteOpen]);
 
-  // Filter cross-entity results
+  // Filter cross-entity results with RBAC protection
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return null;
 
-    const matchedGuests = guests.filter(
-      (g) => g.name.toLowerCase().includes(q) || g.phone.includes(q) || g.email.toLowerCase().includes(q)
-    );
+    const matchedGuests = hasModuleAccess(role, 'guests')
+      ? guests.filter(
+          (g) => g.name.toLowerCase().includes(q) || g.phone.includes(q) || g.email.toLowerCase().includes(q)
+        )
+      : [];
 
-    const matchedLeads = leads.filter(
-      (l) =>
-        l.leadNumber.toLowerCase().includes(q) ||
-        l.guestName.toLowerCase().includes(q) ||
-        l.propertyName.toLowerCase().includes(q)
-    );
+    const matchedLeads = hasModuleAccess(role, 'leads')
+      ? leads.filter(
+          (l) =>
+            l.leadNumber.toLowerCase().includes(q) ||
+            l.guestName.toLowerCase().includes(q) ||
+            l.propertyName.toLowerCase().includes(q)
+        )
+      : [];
 
-    const matchedReservations = reservations.filter(
-      (r) =>
-        r.bookingId.toLowerCase().includes(q) ||
-        r.guestName.toLowerCase().includes(q) ||
-        r.unitNumber.toLowerCase().includes(q) ||
-        r.propertyName.toLowerCase().includes(q)
-    );
+    const matchedReservations = hasModuleAccess(role, 'reservations')
+      ? reservations.filter(
+          (r) =>
+            r.bookingId.toLowerCase().includes(q) ||
+            r.guestName.toLowerCase().includes(q) ||
+            r.unitNumber.toLowerCase().includes(q) ||
+            r.propertyName.toLowerCase().includes(q)
+        )
+      : [];
 
-    const matchedProperties = properties.filter(
-      (p) => p.name.toLowerCase().includes(q) || p.location.toLowerCase().includes(q) || p.type.toLowerCase().includes(q)
-    );
+    const matchedProperties = hasModuleAccess(role, 'properties')
+      ? properties.filter(
+          (p) => p.name.toLowerCase().includes(q) || p.location.toLowerCase().includes(q) || p.type.toLowerCase().includes(q)
+        )
+      : [];
 
-    const matchedUnits = units.filter(
-      (u) =>
-        u.number.toLowerCase().includes(q) ||
-        u.name.toLowerCase().includes(q) ||
-        u.propertyName.toLowerCase().includes(q)
-    );
+    const matchedUnits = hasModuleAccess(role, 'units')
+      ? units.filter(
+          (u) =>
+            u.number.toLowerCase().includes(q) ||
+            u.name.toLowerCase().includes(q) ||
+            u.propertyName.toLowerCase().includes(q)
+        )
+      : [];
 
-    const matchedQuotations = quotations.filter(
-      (qt) =>
-        qt.quotationNumber.toLowerCase().includes(q) ||
-        qt.guestName.toLowerCase().includes(q) ||
-        qt.propertyName.toLowerCase().includes(q)
-    );
+    const matchedQuotations = hasModuleAccess(role, 'quotations')
+      ? quotations.filter(
+          (qt) =>
+            qt.quotationNumber.toLowerCase().includes(q) ||
+            qt.guestName.toLowerCase().includes(q) ||
+            qt.propertyName.toLowerCase().includes(q)
+        )
+      : [];
 
     return {
       guests: matchedGuests,
@@ -95,7 +112,7 @@ export function CommandPalette({ onNavigate }: CommandPaletteProps) {
       units: matchedUnits,
       quotations: matchedQuotations,
     };
-  }, [query, guests, leads, reservations, properties, units, quotations]);
+  }, [query, guests, leads, reservations, properties, units, quotations, role]);
 
   if (!isCommandPaletteOpen) return null;
 
@@ -162,34 +179,42 @@ export function CommandPalette({ onNavigate }: CommandPaletteProps) {
                   Quick Actions
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                  <button
-                    onClick={() => handleCommandAction(() => openGlobalModal('new-reservation'))}
-                    className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-teal-50 hover:text-teal-800 text-slate-700 transition-colors text-left"
-                  >
-                    <Plus className="w-4 h-4 text-teal-600" />
-                    <span>+ New Reservation</span>
-                  </button>
-                  <button
-                    onClick={() => handleCommandAction(() => openGlobalModal('new-lead'))}
-                    className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-teal-50 hover:text-teal-800 text-slate-700 transition-colors text-left"
-                  >
-                    <FileText className="w-4 h-4 text-teal-600" />
-                    <span>+ New Lead</span>
-                  </button>
-                  <button
-                    onClick={() => handleCommandAction(() => openGlobalModal('new-followup'))}
-                    className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-teal-50 hover:text-teal-800 text-slate-700 transition-colors text-left"
-                  >
-                    <PhoneCall className="w-4 h-4 text-teal-600" />
-                    <span>+ New Follow-up</span>
-                  </button>
-                  <button
-                    onClick={() => handleCommandAction(() => openGlobalModal('record-payment'))}
-                    className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-teal-50 hover:text-teal-800 text-slate-700 transition-colors text-left"
-                  >
-                    <CreditCard className="w-4 h-4 text-teal-600" />
-                    <span>Record Payment</span>
-                  </button>
+                  {canPerformAction(role, 'create_reservations') && (
+                    <button
+                      onClick={() => handleCommandAction(() => openGlobalModal('new-reservation'))}
+                      className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-teal-50 hover:text-teal-800 text-slate-700 transition-colors text-left"
+                    >
+                      <Plus className="w-4 h-4 text-teal-600" />
+                      <span>+ New Reservation</span>
+                    </button>
+                  )}
+                  {canPerformAction(role, 'manage_crm') && (
+                    <>
+                      <button
+                        onClick={() => handleCommandAction(() => openGlobalModal('new-lead'))}
+                        className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-teal-50 hover:text-teal-800 text-slate-700 transition-colors text-left"
+                      >
+                        <FileText className="w-4 h-4 text-teal-600" />
+                        <span>+ New Lead</span>
+                      </button>
+                      <button
+                        onClick={() => handleCommandAction(() => openGlobalModal('new-followup'))}
+                        className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-teal-50 hover:text-teal-800 text-slate-700 transition-colors text-left"
+                      >
+                        <PhoneCall className="w-4 h-4 text-teal-600" />
+                        <span>+ New Follow-up</span>
+                      </button>
+                    </>
+                  )}
+                  {canPerformAction(role, 'record_payments') && (
+                    <button
+                      onClick={() => handleCommandAction(() => openGlobalModal('record-payment'))}
+                      className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-teal-50 hover:text-teal-800 text-slate-700 transition-colors text-left"
+                    >
+                      <CreditCard className="w-4 h-4 text-teal-600" />
+                      <span>Record Payment</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -198,46 +223,66 @@ export function CommandPalette({ onNavigate }: CommandPaletteProps) {
                   Jump to Section
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                  <button
-                    onClick={() => handleCommandAction(() => onNavigate('follow-ups'))}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 text-slate-700 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <PhoneCall className="w-4 h-4 text-slate-500" />
-                      <span>Follow-up Center</span>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                  </button>
-                  <button
-                    onClick={() => handleCommandAction(() => onNavigate('calendar'))}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 text-slate-700 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-slate-500" />
-                      <span>Reservation Calendar</span>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                  </button>
-                  <button
-                    onClick={() => handleCommandAction(() => onNavigate('properties'))}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 text-slate-700 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-slate-500" />
-                      <span>Properties & Units</span>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                  </button>
-                  <button
-                    onClick={() => handleCommandAction(() => onNavigate('housekeeping'))}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 text-slate-700 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-slate-500" />
-                      <span>Housekeeping Tasks</span>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                  </button>
+                  {hasModuleAccess(role, 'follow-ups') && (
+                    <button
+                      onClick={() => handleCommandAction(() => onNavigate('follow-ups'))}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 text-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <PhoneCall className="w-4 h-4 text-slate-500" />
+                        <span>Follow-up Center</span>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  )}
+                  {hasModuleAccess(role, 'calendar') && (
+                    <button
+                      onClick={() => handleCommandAction(() => onNavigate('calendar'))}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 text-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-slate-500" />
+                        <span>Reservation Calendar</span>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  )}
+                  {hasModuleAccess(role, 'properties') && (
+                    <button
+                      onClick={() => handleCommandAction(() => onNavigate('properties'))}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 text-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-slate-500" />
+                        <span>Properties & Units</span>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  )}
+                  {hasModuleAccess(role, 'housekeeping') && (
+                    <button
+                      onClick={() => handleCommandAction(() => onNavigate('housekeeping'))}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 text-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-slate-500" />
+                        <span>Housekeeping Tasks</span>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  )}
+                  {hasModuleAccess(role, 'finance') && (
+                    <button
+                      onClick={() => handleCommandAction(() => onNavigate('finance'))}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-100 text-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-slate-500" />
+                        <span>Financial Overview</span>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

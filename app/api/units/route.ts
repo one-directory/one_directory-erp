@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { UnitStatus } from '@prisma/client';
+import { toPrismaUnitStatus } from '@/lib/prisma-enums';
 
 // GET /api/units
 export async function GET(request: NextRequest) {
@@ -8,7 +9,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get('propertyId');
     const unitTypeId = searchParams.get('unitTypeId');
-    const status = searchParams.get('status') as UnitStatus | null;
+    const rawStatus = searchParams.get('status');
+    const status = rawStatus ? toPrismaUnitStatus(rawStatus) : undefined;
 
     const units = await prisma.unit.findMany({
       where: {
@@ -52,28 +54,24 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       propertyId,
-      unitTypeId,
       number,
       name,
-      floor = '1',
+      floor = '1st Floor',
       status = 'Available',
     } = body;
+    let { unitTypeId } = body;
 
-    if (!propertyId || !unitTypeId || !number) {
+    if (!propertyId || !number) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Missing required fields: propertyId, unitTypeId, and number are required.',
+          error: 'Missing required fields: propertyId and number are required.',
         },
         { status: 400 }
       );
     }
 
-    const [property, unitType] = await Promise.all([
-      prisma.property.findUnique({ where: { id: propertyId } }),
-      prisma.unitType.findUnique({ where: { id: unitTypeId } }),
-    ]);
-
+    const property = await prisma.property.findUnique({ where: { id: propertyId } });
     if (!property) {
       return NextResponse.json(
         { success: false, error: 'Referenced property not found.' },
@@ -81,12 +79,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let unitType = unitTypeId
+      ? await prisma.unitType.findUnique({ where: { id: unitTypeId } })
+      : null;
+
+    // Fallback if unitTypeId not provided or not found: fetch existing or create one
     if (!unitType) {
-      return NextResponse.json(
-        { success: false, error: 'Referenced unit type not found.' },
-        { status: 404 }
-      );
+      unitType = await prisma.unitType.findFirst({ where: { propertyId } });
+      if (!unitType) {
+        unitType = await prisma.unitType.create({
+          data: {
+            propertyId,
+            propertyName: property.name,
+            name: 'Standard Room',
+            capacity: 2,
+            bedConfiguration: '1 Queen Bed',
+            baseRate: 3500,
+            numberOfUnits: 1,
+            amenities: ['WiFi', 'Air Conditioning'],
+            status: 'Active',
+          },
+        });
+      }
+      unitTypeId = unitType.id;
     }
+
+    const prismaStatus = toPrismaUnitStatus(status);
 
     const newUnit = await prisma.unit.create({
       data: {
@@ -94,10 +112,10 @@ export async function POST(request: NextRequest) {
         propertyName: property.name,
         unitTypeId,
         unitTypeName: unitType.name,
-        number,
-        name: name || `${unitType.name} ${number}`,
-        floor: String(floor),
-        status: (status as UnitStatus) || 'Available',
+        number: String(number).trim(),
+        name: name ? String(name).trim() : `${unitType.name} ${number}`,
+        floor: String(floor).trim() || '1st Floor',
+        status: prismaStatus,
       },
     });
 

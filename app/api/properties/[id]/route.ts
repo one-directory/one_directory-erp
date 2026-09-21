@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PropertyType, PropertyStatus } from '@prisma/client';
+import { toPrismaPropertyType, toPrismaPropertyStatus } from '@/lib/prisma-enums';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -75,15 +76,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       where: { id },
       data: {
         ...(body.name !== undefined ? { name: body.name } : {}),
-        ...(body.type !== undefined ? { type: body.type as PropertyType } : {}),
+        ...(body.type !== undefined ? { type: toPrismaPropertyType(body.type) } : {}),
         ...(body.location !== undefined ? { location: body.location } : {}),
         ...(body.contact !== undefined ? { contact: body.contact } : {}),
+        ...(body.totalUnits !== undefined ? { totalUnits: parseInt(String(body.totalUnits), 10) } : {}),
         ...(body.ownerName !== undefined ? { ownerName: body.ownerName } : {}),
         ...(body.ownerEmail !== undefined ? { ownerEmail: body.ownerEmail } : {}),
         ...(body.ownerPhone !== undefined ? { ownerPhone: body.ownerPhone } : {}),
         ...(body.description !== undefined ? { description: body.description } : {}),
         ...(body.amenities !== undefined ? { amenities: body.amenities } : {}),
-        ...(body.status !== undefined ? { status: body.status as PropertyStatus } : {}),
+        ...(body.status !== undefined ? { status: toPrismaPropertyStatus(body.status) } : {}),
         ...(body.occupancyRate !== undefined ? { occupancyRate: body.occupancyRate } : {}),
         ...(body.revenueThisMonth !== undefined ? { revenueThisMonth: body.revenueThisMonth } : {}),
       },

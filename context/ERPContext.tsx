@@ -23,6 +23,10 @@ import {
   AuditLog,
   Notification,
   UnitStatus,
+  OTAChannel,
+  ChannelConnection,
+  ChannelSyncEvent,
+  ChannelRateRule,
 } from '@/types/erp';
 import {
   INITIAL_PROPERTIES,
@@ -44,6 +48,9 @@ import {
   INITIAL_REVIEWS,
   INITIAL_AUDIT_LOGS,
   INITIAL_NOTIFICATIONS,
+  INITIAL_CHANNEL_CONNECTIONS,
+  INITIAL_CHANNEL_SYNC_EVENTS,
+  INITIAL_CHANNEL_RATE_RULES,
 } from '@/data/mockData';
 
 export type DrawerType =
@@ -67,7 +74,8 @@ export type GlobalModalType =
   | 'add-expense'
   | 'maintenance-ticket'
   | 'housekeeping-task'
-  | 'complete-followup';
+  | 'complete-followup'
+  | 'simulate-ota-booking';
 
 export interface ToastMessage {
   id: string;
@@ -99,6 +107,32 @@ interface ERPContextType {
   auditLogs: AuditLog[];
   notifications: Notification[];
   toasts: ToastMessage[];
+
+  // Channel Manager & OTA Simulator
+  channelConnections: ChannelConnection[];
+  channelSyncEvents: ChannelSyncEvent[];
+  channelRateRules: ChannelRateRule[];
+  isSyncingChannels: boolean;
+  triggerGlobalChannelSync: () => Promise<void>;
+  simulateIncomingOtaBooking: (params: {
+    channel: OTAChannel;
+    propertyId?: string;
+    propertyName?: string;
+    unitTypeId?: string;
+    unitTypeName?: string;
+    unitNumber?: string;
+    guestName?: string;
+    guestEmail?: string;
+    guestPhone?: string;
+    checkIn?: string;
+    checkOut?: string;
+    nights?: number;
+    guestsCount?: number;
+    baseRate?: number;
+  }) => Promise<Reservation>;
+  simulateOtaCancellation: (reservationId: string) => void;
+  updateChannelSettings: (channelId: string, updates: Partial<ChannelConnection>) => void;
+  updateChannelRateMarkup: (channel: OTAChannel, markupPercentage: number) => void;
 
   // Shell controls
   selectedProperty: Property | null;
@@ -146,6 +180,10 @@ interface ERPContextType {
   replyToReview: (reviewId: string, replyText: string) => void;
   markNotificationRead: (notificationId: string) => void;
   markAllNotificationsRead: () => void;
+  addProperty: (data: Partial<Property>) => void;
+  removeProperty: (propertyId: string) => void;
+  addUnit: (data: Partial<Unit> & { propertyId: string; propertyName: string }) => void;
+  removeUnit: (unitId: string) => void;
 }
 
 const ERPContext = createContext<ERPContextType | undefined>(undefined);
@@ -173,6 +211,12 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
   const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
 
+  // Channel Manager & OTA Simulator state
+  const [channelConnections, setChannelConnections] = useState<ChannelConnection[]>(INITIAL_CHANNEL_CONNECTIONS);
+  const [channelSyncEvents, setChannelSyncEvents] = useState<ChannelSyncEvent[]>(INITIAL_CHANNEL_SYNC_EVENTS);
+  const [channelRateRules, setChannelRateRules] = useState<ChannelRateRule[]>(INITIAL_CHANNEL_RATE_RULES);
+  const [isSyncingChannels, setIsSyncingChannels] = useState(false);
+
   // Shell controls state
   const [activeDrawer, setActiveDrawer] = useState<{ type: DrawerType; id: string } | null>(null);
   const [activeModal, setActiveModal] = useState<{ type: GlobalModalType; data?: any } | null>(null);
@@ -189,6 +233,80 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Synchronize with backend PostgreSQL on mount
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/properties?includeUnits=true');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data) && json.data.length > 0 && isMounted) {
+            const dbProps: Property[] = json.data.map((p: any) => ({
+              id: p.id,
+              name: p.name,
+              type: p.type,
+              location: p.location,
+              contact: p.contact,
+              totalUnits: p.totalUnits,
+              occupancyRate: p.occupancyRate || 0,
+              todayArrivals: p.todayArrivals || 0,
+              todayDepartures: p.todayDepartures || 0,
+              revenueThisMonth: p.revenueThisMonth || 0,
+              status: p.status,
+              ownerName: p.ownerName,
+              ownerEmail: p.ownerEmail,
+              ownerPhone: p.ownerPhone,
+              description: p.description || '',
+              amenities: p.amenities || [],
+            }));
+
+            setProperties((prev) => {
+              const existingIds = new Set(prev.map((p) => p.id));
+              const newProps = dbProps.filter((p) => !existingIds.has(p.id));
+              return [...newProps, ...prev];
+            });
+
+            const dbUnits: Unit[] = [];
+            json.data.forEach((p: any) => {
+              if (Array.isArray(p.units)) {
+                p.units.forEach((u: any) => {
+                  dbUnits.push({
+                    id: u.id,
+                    propertyId: u.propertyId,
+                    propertyName: u.propertyName || p.name,
+                    unitTypeId: u.unitTypeId,
+                    unitTypeName: u.unitTypeName || 'Standard Room',
+                    number: u.number,
+                    name: u.name,
+                    floor: u.floor,
+                    status: u.status,
+                    currentReservationId: u.currentReservationId,
+                    currentGuestName: u.currentGuestName,
+                    currentCheckOut: u.currentCheckOut,
+                  });
+                });
+              }
+            });
+
+            if (dbUnits.length > 0) {
+              setUnits((prev) => {
+                const existingIds = new Set(prev.map((u) => u.id));
+                const newUnits = dbUnits.filter((u) => !existingIds.has(u.id));
+                return [...newUnits, ...prev];
+              });
+            }
+          }
+        }
+      } catch (e) {
+        // Fallback gracefully to in-memory dataset if database is unreachable
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const showToast = (title: string, message?: string, type: 'success' | 'info' | 'warning' | 'error' = 'success') => {
@@ -593,7 +711,23 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     }
 
     addAuditLog('Created Reservation', 'Reservations', newRes.bookingId, `Created booking for ${newRes.guestName} at ${newRes.propertyName}`);
-    showToast('Reservation created', `Booking ${newRes.bookingId} confirmed`);
+
+    // Outbound channel sync event: automatically block unit on connected OTAs to prevent double-booking
+    const channels: OTAChannel[] = ['Airbnb', 'Booking.com', 'Agoda', 'MakeMyTrip'];
+    const outboundSyncEvents: ChannelSyncEvent[] = channels.map((c) => ({
+      id: `sync-evt-${Date.now()}-${c.toLowerCase()}`,
+      timestamp: 'Just now',
+      channel: c,
+      propertyName: newRes.propertyName,
+      eventType: 'INVENTORY_BLOCK',
+      status: 'Success',
+      bookingReference: newRes.bookingId,
+      details: `Unit ${newRes.unitNumber} dates ${newRes.checkIn} to ${newRes.checkOut} blocked on ${c} (2-way calendar parity).`,
+      latencyMs: Math.floor(90 + Math.random() * 80),
+    }));
+    setChannelSyncEvents((prev) => [...outboundSyncEvents, ...prev]);
+
+    showToast('Reservation created', `Booking ${newRes.bookingId} confirmed & blocked across all OTAs.`);
     closeGlobalModal();
   };
 
@@ -712,6 +846,15 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
       prev.map((u) => (u.id === unitId ? { ...u, status } : u))
     );
     showToast('Unit status updated', `Room status changed to ${status}`);
+
+    // Asynchronously update in backend PostgreSQL
+    fetch(`/api/units/${unitId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    }).catch((err) => {
+      console.warn('Backend sync for unit status update:', err);
+    });
   };
 
   const startHousekeepingTask = (taskId: string) => {
@@ -894,6 +1037,425 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     showToast('Notifications cleared', 'All marked as read');
   };
 
+  // ---------------------------------------------------------------------------
+  // OTA Channel Manager & Sync Simulator Handlers
+  // ---------------------------------------------------------------------------
+
+  const triggerGlobalChannelSync = async () => {
+    setIsSyncingChannels(true);
+    try {
+      const res = await fetch('/api/channels/simulate-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyId: selectedPropertyId }),
+      });
+      await res.json();
+
+      const nowStr = 'Just now';
+      setChannelConnections((prev) =>
+        prev.map((c) => ({ ...c, lastSyncAt: nowStr, status: 'Connected' }))
+      );
+
+      const targetPropName = selectedProperty ? selectedProperty.name : 'All Properties';
+      const newEvents: ChannelSyncEvent[] = (['Airbnb', 'Booking.com', 'Agoda', 'MakeMyTrip'] as OTAChannel[]).map((c) => ({
+        id: `sync-evt-${Date.now()}-${c.toLowerCase()}`,
+        timestamp: 'Just now',
+        channel: c,
+        propertyName: targetPropName,
+        eventType: 'RATE_PUSH',
+        status: 'Success',
+        details: `Two-way rate & inventory parity push confirmed on ${c} distribution endpoint.`,
+        latencyMs: Math.floor(100 + Math.random() * 120),
+      }));
+
+      setChannelSyncEvents((prev) => [...newEvents, ...prev]);
+      showToast('Global OTA Sync Complete', 'Inventory & rates synchronized across Airbnb, Booking.com, Agoda, and MMT.', 'success');
+    } catch {
+      showToast('Sync Refreshed', 'Local channel state and inventory parity verified.', 'info');
+    } finally {
+      setIsSyncingChannels(false);
+    }
+  };
+
+  const simulateIncomingOtaBooking = async (params: {
+    channel: OTAChannel;
+    propertyId?: string;
+    propertyName?: string;
+    unitTypeId?: string;
+    unitTypeName?: string;
+    unitNumber?: string;
+    guestName?: string;
+    guestEmail?: string;
+    guestPhone?: string;
+    checkIn?: string;
+    checkOut?: string;
+    nights?: number;
+    guestsCount?: number;
+    baseRate?: number;
+  }): Promise<Reservation> => {
+    const targetProp = properties.find((p) => p.id === params.propertyId) || properties[0];
+    const targetUnitType = unitTypes.find((ut) => ut.id === params.unitTypeId) || unitTypes[0];
+    const availableUnit =
+      units.find((u) => u.propertyId === targetProp.id && u.status === 'Available') ||
+      units.find((u) => u.propertyId === targetProp.id) ||
+      units[0];
+
+    const basePayload = {
+      channel: params.channel,
+      propertyId: targetProp.id,
+      propertyName: targetProp.name,
+      unitTypeId: targetUnitType.id,
+      unitTypeName: targetUnitType.name,
+      unitNumber: params.unitNumber || availableUnit.number,
+      guestName: params.guestName || 'Sneha Roy',
+      guestEmail: params.guestEmail || 'sneha.roy@gmail.com',
+      guestPhone: params.guestPhone || '+91 98450 11223',
+      checkIn: params.checkIn || '2026-09-26',
+      checkOut: params.checkOut || '2026-09-29',
+      nights: params.nights || 3,
+      guestsCount: params.guestsCount || 2,
+      baseRate: params.baseRate || targetUnitType.baseRate || 5000,
+    };
+
+    let newRes: Reservation;
+    try {
+      const res = await fetch('/api/channels/simulate-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(basePayload),
+      });
+      const data = await res.json();
+      if (data.reservation) {
+        newRes = data.reservation;
+      } else {
+        throw new Error('Fallback calculation');
+      }
+    } catch {
+      // Local fallback calculation
+      const randomNum = Math.floor(100000 + Math.random() * 900000);
+      const bookingId = `${params.channel.substring(0, 3).toUpperCase()}-${randomNum}`;
+      const total = basePayload.baseRate * basePayload.nights * 1.15;
+      newRes = {
+        id: `res-ota-${Date.now()}`,
+        bookingId,
+        guestId: `guest-ota-${Date.now()}`,
+        guestName: basePayload.guestName,
+        guestPhone: basePayload.guestPhone,
+        guestEmail: basePayload.guestEmail,
+        propertyId: targetProp.id,
+        propertyName: targetProp.name,
+        unitId: availableUnit.id,
+        unitNumber: basePayload.unitNumber,
+        unitTypeName: targetUnitType.name,
+        checkIn: basePayload.checkIn,
+        checkOut: basePayload.checkOut,
+        nights: basePayload.nights,
+        guestsCount: basePayload.guestsCount,
+        source: params.channel,
+        rate: basePayload.baseRate * basePayload.nights,
+        discount: 0,
+        tax: Math.round(total * 0.12),
+        total: Math.round(total),
+        paid: Math.round(total),
+        balance: 0,
+        status: 'Confirmed',
+        specialRequests: `Instant booking via ${params.channel} API.`,
+        createdAt: '2026-09-21',
+      };
+    }
+
+    // Add reservation to state
+    setReservations((prev) => [newRes, ...prev]);
+
+    // Mark unit as occupied
+    setUnits((prev) =>
+      prev.map((u) =>
+        u.id === availableUnit.id
+          ? {
+              ...u,
+              status: 'Occupied',
+              currentReservationId: newRes.id,
+              currentGuestName: newRes.guestName,
+              currentCheckOut: newRes.checkOut,
+            }
+          : u
+      )
+    );
+
+    // Record incoming sync event
+    const inboundEvent: ChannelSyncEvent = {
+      id: `sync-in-${Date.now()}`,
+      timestamp: 'Just now',
+      channel: params.channel,
+      propertyName: targetProp.name,
+      eventType: 'INCOMING_BOOKING',
+      status: 'Success',
+      bookingReference: newRes.bookingId,
+      details: `Instant booking received for ${newRes.guestName} (${newRes.nights} nights, ₹${newRes.total?.toLocaleString('en-IN')}). Unit ${newRes.unitNumber} assigned.`,
+      latencyMs: Math.floor(95 + Math.random() * 60),
+    };
+
+    // Outbound stop-sell block on other channels
+    const otherChannels = (['Airbnb', 'Booking.com', 'Agoda', 'MakeMyTrip'] as OTAChannel[]).filter(
+      (c) => c !== params.channel
+    );
+    const outboundBlocks: ChannelSyncEvent[] = otherChannels.map((c) => ({
+      id: `sync-out-${Date.now()}-${c.toLowerCase()}`,
+      timestamp: 'Just now',
+      channel: c,
+      propertyName: targetProp.name,
+      eventType: 'INVENTORY_BLOCK',
+      status: 'Success',
+      bookingReference: newRes.bookingId,
+      details: `Unit ${newRes.unitNumber} dates ${newRes.checkIn} to ${newRes.checkOut} blocked on ${c} (anti-double-booking).`,
+      latencyMs: Math.floor(110 + Math.random() * 80),
+    }));
+
+    setChannelSyncEvents((prev) => [inboundEvent, ...outboundBlocks, ...prev]);
+
+    addAuditLog(
+      'OTA Instant Booking Received',
+      'Channel Manager',
+      newRes.bookingId,
+      `Simulated ${params.channel} instant reservation ${newRes.bookingId} for ${newRes.guestName}`
+    );
+
+    const newNotif: Notification = {
+      id: `notif-${Date.now()}`,
+      title: `New ${params.channel} Booking`,
+      message: `${newRes.guestName} booked ${newRes.unitTypeName} (${newRes.unitNumber}) at ${newRes.propertyName}. Total: ₹${newRes.total?.toLocaleString('en-IN')}`,
+      type: 'booking',
+      time: 'Just now',
+      read: false,
+      link: '/reservations',
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+
+    showToast(`Incoming ${params.channel} Booking!`, `${newRes.bookingId} - ${newRes.guestName} booked ${newRes.unitNumber}`, 'success');
+    closeGlobalModal();
+    return newRes;
+  };
+
+  const simulateOtaCancellation = (reservationId: string) => {
+    const res = reservations.find((r) => r.id === reservationId || r.bookingId === reservationId);
+    if (!res) return;
+
+    setReservations((prev) =>
+      prev.map((r) => (r.id === res.id ? { ...r, status: 'Cancelled' } : r))
+    );
+
+    // Free up the unit
+    if (res.unitId) {
+      setUnits((prev) =>
+        prev.map((u) =>
+          u.id === res.unitId
+            ? {
+                ...u,
+                status: 'Available',
+                currentReservationId: undefined,
+                currentGuestName: undefined,
+                currentCheckOut: undefined,
+              }
+            : u
+        )
+      );
+    }
+
+    const cancelEvt: ChannelSyncEvent = {
+      id: `sync-cancel-${Date.now()}`,
+      timestamp: 'Just now',
+      channel: (res.source as OTAChannel) || 'Airbnb',
+      propertyName: res.propertyName,
+      eventType: 'BOOKING_CANCELLED',
+      status: 'Success',
+      bookingReference: res.bookingId,
+      details: `Guest cancelled ${res.bookingId} (${res.guestName}). Unit ${res.unitNumber} inventory released back across all OTAs.`,
+      latencyMs: 110,
+    };
+
+    setChannelSyncEvents((prev) => [cancelEvt, ...prev]);
+    showToast('OTA Booking Cancelled', `Unit ${res.unitNumber} released back into channel distribution.`, 'warning');
+  };
+
+  const updateChannelSettings = (channelId: string, updates: Partial<ChannelConnection>) => {
+    setChannelConnections((prev) =>
+      prev.map((c) => (c.id === channelId ? { ...c, ...updates, lastSyncAt: 'Just now' } : c))
+    );
+    showToast('Channel Settings Saved', 'Synchronization parameters updated successfully.');
+  };
+
+  const updateChannelRateMarkup = (channel: OTAChannel, markupPercentage: number) => {
+    setChannelConnections((prev) =>
+      prev.map((c) => (c.channel === channel ? { ...c, rateMarkupPercentage: markupPercentage } : c))
+    );
+
+    setChannelRateRules((prev) =>
+      prev.map((rule) => {
+        const channelData = rule.rates[channel];
+        if (!channelData) return rule;
+        const newChannelRate = Math.round(rule.baseRate * (1 + markupPercentage / 100));
+        const commissionAmount = Math.round(newChannelRate * (channelData.commissionRate / 100));
+        const newNetPayout = newChannelRate - commissionAmount;
+
+        return {
+          ...rule,
+          rates: {
+            ...rule.rates,
+            [channel]: {
+              ...channelData,
+              markupPercentage,
+              channelRate: newChannelRate,
+              netPayout: newNetPayout,
+            },
+          },
+        };
+      })
+    );
+
+    showToast('Rate Parity Updated', `${channel} markup adjusted to +${markupPercentage}%. Calculated rates updated.`);
+  };
+
+  // ── Property & Unit Backend-Integrated CRUD ─────────────────────────────────
+  const addProperty = (data: Partial<Property>) => {
+    const tempId = `prop-${Date.now()}`;
+    const newProperty: Property = {
+      id: tempId,
+      name: data.name || 'New Property',
+      type: data.type || 'Hotel',
+      location: data.location || 'India',
+      contact: data.contact || '',
+      totalUnits: data.totalUnits ?? 0,
+      occupancyRate: 0,
+      todayArrivals: 0,
+      todayDepartures: 0,
+      revenueThisMonth: 0,
+      status: data.status || 'Active',
+      ownerName: data.ownerName || '',
+      ownerEmail: data.ownerEmail || '',
+      ownerPhone: data.ownerPhone || '',
+      description: data.description || '',
+      amenities: data.amenities || [],
+    };
+    setProperties((prev) => [newProperty, ...prev]);
+    addAuditLog('CREATE', 'Properties', newProperty.id, `New property "${newProperty.name}" added at ${newProperty.location}.`);
+    showToast('Property Added', `"${newProperty.name}" has been added to your portfolio.`, 'success');
+
+    // Asynchronously persist to backend PostgreSQL
+    fetch('/api/properties', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: newProperty.name,
+        type: newProperty.type,
+        location: newProperty.location,
+        contact: newProperty.contact,
+        totalUnits: newProperty.totalUnits,
+        ownerName: newProperty.ownerName,
+        ownerEmail: newProperty.ownerEmail,
+        ownerPhone: newProperty.ownerPhone,
+        description: newProperty.description,
+        amenities: newProperty.amenities,
+        status: newProperty.status,
+      }),
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data?.id) {
+          // Update temp ID with database-persisted cuid
+          setProperties((prev) =>
+            prev.map((p) => (p.id === tempId ? { ...p, id: json.data.id } : p))
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend sync for property creation:', err);
+      });
+  };
+
+  const removeProperty = (propertyId: string) => {
+    const target = properties.find((p) => p.id === propertyId);
+    if (!target) return;
+    setProperties((prev) => prev.filter((p) => p.id !== propertyId));
+    addAuditLog('DELETE', 'Properties', propertyId, `Property "${target.name}" removed from portfolio.`);
+    showToast('Property Removed', `"${target.name}" has been removed.`, 'warning');
+
+    // Asynchronously delete from backend PostgreSQL
+    fetch(`/api/properties/${propertyId}`, {
+      method: 'DELETE',
+    }).catch((err) => {
+      console.warn('Backend sync for property deletion:', err);
+    });
+  };
+
+  const addUnit = (data: Partial<Unit> & { propertyId: string; propertyName: string }) => {
+    const tempId = `unit-${Date.now()}`;
+    const newUnit: Unit = {
+      id: tempId,
+      propertyId: data.propertyId,
+      propertyName: data.propertyName,
+      unitTypeId: data.unitTypeId || '',
+      unitTypeName: data.unitTypeName || 'Standard Room',
+      number: data.number || `R-${Date.now().toString().slice(-4)}`,
+      name: data.name || 'New Unit',
+      floor: data.floor || 'Ground Floor',
+      status: (data.status as UnitStatus) || 'Available',
+    };
+    setUnits((prev) => [...prev, newUnit]);
+    setProperties((prev) =>
+      prev.map((p) => (p.id === data.propertyId ? { ...p, totalUnits: (p.totalUnits || 0) + 1 } : p))
+    );
+    addAuditLog('CREATE', 'Units', newUnit.id, `Unit "${newUnit.number}" added to ${newUnit.propertyName}.`);
+    showToast('Unit Added', `Unit ${newUnit.number} added successfully.`, 'success');
+
+    // Asynchronously persist to backend PostgreSQL
+    fetch('/api/units', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        propertyId: newUnit.propertyId,
+        unitTypeId: newUnit.unitTypeId || undefined,
+        number: newUnit.number,
+        name: newUnit.name,
+        floor: newUnit.floor,
+        status: newUnit.status,
+      }),
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data?.id) {
+          // Update temp ID with database-persisted cuid
+          setUnits((prev) =>
+            prev.map((u) =>
+              u.id === tempId
+                ? { ...u, id: json.data.id, unitTypeId: json.data.unitTypeId || u.unitTypeId }
+                : u
+            )
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend sync for unit creation:', err);
+      });
+  };
+
+  const removeUnit = (unitId: string) => {
+    const target = units.find((u) => u.id === unitId);
+    if (!target) return;
+    setUnits((prev) => prev.filter((u) => u.id !== unitId));
+    setProperties((prev) =>
+      prev.map((p) => (p.id === target.propertyId ? { ...p, totalUnits: Math.max(0, (p.totalUnits || 1) - 1) } : p))
+    );
+    addAuditLog('DELETE', 'Units', unitId, `Unit "${target.number}" removed from ${target.propertyName}.`);
+    showToast('Unit Removed', `Unit ${target.number} has been removed.`, 'warning');
+
+    // Asynchronously delete from backend PostgreSQL
+    fetch(`/api/units/${unitId}`, {
+      method: 'DELETE',
+    }).catch((err) => {
+      console.warn('Backend sync for unit deletion:', err);
+    });
+  };
+
   return (
     <ERPContext.Provider
       value={{
@@ -918,6 +1480,15 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
         auditLogs,
         notifications,
         toasts,
+        channelConnections,
+        channelSyncEvents,
+        channelRateRules,
+        isSyncingChannels,
+        triggerGlobalChannelSync,
+        simulateIncomingOtaBooking,
+        simulateOtaCancellation,
+        updateChannelSettings,
+        updateChannelRateMarkup,
         selectedProperty,
         setSelectedPropertyId,
         activeDrawer,
@@ -953,6 +1524,10 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
         replyToReview,
         markNotificationRead,
         markAllNotificationsRead,
+        addProperty,
+        removeProperty,
+        addUnit,
+        removeUnit,
       }}
     >
       {children}

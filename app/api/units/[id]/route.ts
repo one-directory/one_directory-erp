@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { UnitStatus } from '@prisma/client';
+import { toPrismaUnitStatus } from '@/lib/prisma-enums';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -59,7 +60,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const updatedUnit = await prisma.unit.update({
       where: { id },
       data: {
-        ...(body.status !== undefined ? { status: body.status as UnitStatus } : {}),
+        ...(body.status !== undefined ? { status: toPrismaUnitStatus(body.status) } : {}),
         ...(body.number !== undefined ? { number: body.number } : {}),
         ...(body.name !== undefined ? { name: body.name } : {}),
         ...(body.floor !== undefined ? { floor: String(body.floor) } : {}),

@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PropertyType, PropertyStatus } from '@prisma/client';
+import { toPrismaPropertyType, toPrismaPropertyStatus } from '@/lib/prisma-enums';
 
 // GET /api/properties
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status') as PropertyStatus | null;
-    const type = searchParams.get('type') as PropertyType | null;
+    const rawStatus = searchParams.get('status');
+    const rawType = searchParams.get('type');
     const includeUnits = searchParams.get('includeUnits') === 'true';
+
+    const status = rawStatus ? toPrismaPropertyStatus(rawStatus) : undefined;
+    const type = rawType ? toPrismaPropertyType(rawType) : undefined;
 
     const properties = await prisma.property.findMany({
       where: {
@@ -59,6 +63,7 @@ export async function POST(request: NextRequest) {
       type,
       location,
       contact,
+      totalUnits = 0,
       ownerName,
       ownerEmail,
       ownerPhone,
@@ -77,18 +82,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const prismaType = toPrismaPropertyType(type);
+    const prismaStatus = toPrismaPropertyStatus(status);
+    const parsedTotalUnits = totalUnits ? parseInt(String(totalUnits), 10) : 0;
+
     const newProperty = await prisma.property.create({
       data: {
-        name,
-        type: type as PropertyType,
-        location,
-        contact,
-        ownerName,
-        ownerEmail: ownerEmail || '',
-        ownerPhone: ownerPhone || '',
-        description,
-        amenities,
-        status: (status as PropertyStatus) || 'Active',
+        name: name.trim(),
+        type: prismaType,
+        location: location.trim(),
+        contact: contact.trim(),
+        totalUnits: isNaN(parsedTotalUnits) ? 0 : parsedTotalUnits,
+        ownerName: ownerName.trim(),
+        ownerEmail: ownerEmail ? ownerEmail.trim() : '',
+        ownerPhone: ownerPhone ? ownerPhone.trim() : '',
+        description: description ? description.trim() : '',
+        amenities: Array.isArray(amenities) ? amenities : [],
+        status: prismaStatus,
+      },
+    });
+
+    // Auto-create a primary unit type for this property so units can be attached right away
+    await prisma.unitType.create({
+      data: {
+        propertyId: newProperty.id,
+        propertyName: newProperty.name,
+        name: 'Standard Room',
+        capacity: 2,
+        bedConfiguration: '1 King / Queen Bed',
+        baseRate: 3500,
+        numberOfUnits: newProperty.totalUnits || 1,
+        amenities: ['WiFi', 'Air Conditioning', 'En-suite Bathroom'],
+        status: 'Active',
       },
     });
 

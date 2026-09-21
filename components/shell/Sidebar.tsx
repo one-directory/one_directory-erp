@@ -27,8 +27,12 @@ import {
   MessageSquare,
   Star,
   Hotel,
+  Globe2,
+  Wifi,
 } from 'lucide-react';
 import { useERP } from '@/context/ERPContext';
+import { useAuth } from '@/context/AuthContext';
+import { hasModuleAccess, ROLE_INFO_MAP } from '@/lib/rbac';
 
 export type NavigationModule =
   | 'dashboard'
@@ -50,6 +54,7 @@ export type NavigationModule =
   | 'invoices'
   | 'expenses'
   | 'owner-settlements'
+  | 'channels'
   | 'reviews'
   | 'reports'
   | 'audit'
@@ -69,6 +74,11 @@ export function Sidebar({
   onCloseMobile,
 }: SidebarProps) {
   const { followUps, housekeepingTasks, maintenanceTickets, openGlobalModal } = useERP();
+  const { user } = useAuth();
+  const role = user?.role;
+
+  // Helper: is a module accessible to the current user role?
+  const allowed = (mod: NavigationModule) => hasModuleAccess(role, mod);
 
   // Overdue follow-up counter
   const overdueFollowUpsCount = followUps.filter((f) => f.status === 'Overdue').length;
@@ -139,6 +149,7 @@ export function Sidebar({
         </button>
 
         {/* Reservations Group */}
+        {(allowed('calendar') || allowed('reservations')) && (
         <div>
           <button
             onClick={() => toggleGroup('reservations')}
@@ -157,6 +168,7 @@ export function Sidebar({
 
           {expandedGroups.reservations && (
             <div className="mt-0.5 space-y-0.5">
+              {allowed('calendar') && (
               <button
                 onClick={() => handleNav('calendar')}
                 className={subNavItemClass(currentModule === 'calendar')}
@@ -164,17 +176,22 @@ export function Sidebar({
                 <span>Calendar Matrix</span>
                 <span className="text-[10px] text-teal-300 font-mono">Gantt</span>
               </button>
+              )}
+              {allowed('reservations') && (
               <button
                 onClick={() => handleNav('reservations')}
                 className={subNavItemClass(currentModule === 'reservations')}
               >
                 <span>All Bookings</span>
               </button>
+              )}
             </div>
           )}
         </div>
+        )}
 
         {/* Guests */}
+        {allowed('guests') && (
         <button
           onClick={() => handleNav('guests')}
           className={navItemClass(currentModule === 'guests')}
@@ -184,8 +201,10 @@ export function Sidebar({
             <span>Guest Directory</span>
           </div>
         </button>
+        )}
 
         {/* CRM Group */}
+        {(allowed('follow-ups') || allowed('leads') || allowed('quotations') || allowed('communications')) && (
         <div>
           <button
             onClick={() => toggleGroup('crm')}
@@ -204,6 +223,7 @@ export function Sidebar({
 
           {expandedGroups.crm && (
             <div className="mt-0.5 space-y-0.5">
+              {allowed('follow-ups') && (
               <button
                 onClick={() => handleNav('follow-ups')}
                 className={subNavItemClass(currentModule === 'follow-ups')}
@@ -217,29 +237,38 @@ export function Sidebar({
                   </span>
                 )}
               </button>
+              )}
+              {allowed('leads') && (
               <button
                 onClick={() => handleNav('leads')}
                 className={subNavItemClass(currentModule === 'leads')}
               >
                 <span>Leads Pipeline</span>
               </button>
+              )}
+              {allowed('quotations') && (
               <button
                 onClick={() => handleNav('quotations')}
                 className={subNavItemClass(currentModule === 'quotations')}
               >
                 <span>Quotations</span>
               </button>
+              )}
+              {allowed('communications') && (
               <button
                 onClick={() => handleNav('communications')}
                 className={subNavItemClass(currentModule === 'communications')}
               >
                 <span>Communications Log</span>
               </button>
+              )}
             </div>
           )}
         </div>
+        )}
 
         {/* Properties Group */}
+        {(allowed('properties') || allowed('unit-types') || allowed('units')) && (
         <div>
           <button
             onClick={() => toggleGroup('properties')}
@@ -258,29 +287,37 @@ export function Sidebar({
 
           {expandedGroups.properties && (
             <div className="mt-0.5 space-y-0.5">
+              {allowed('properties') && (
               <button
                 onClick={() => handleNav('properties')}
                 className={subNavItemClass(currentModule === 'properties')}
               >
                 <span>Properties (7)</span>
               </button>
+              )}
+              {allowed('unit-types') && (
               <button
                 onClick={() => handleNav('unit-types')}
                 className={subNavItemClass(currentModule === 'unit-types')}
               >
                 <span>Unit Types</span>
               </button>
+              )}
+              {allowed('units') && (
               <button
                 onClick={() => handleNav('units')}
                 className={subNavItemClass(currentModule === 'units')}
               >
                 <span>Unit Inventory</span>
               </button>
+              )}
             </div>
           )}
         </div>
+        )}
 
         {/* Operations Group */}
+        {(allowed('housekeeping') || allowed('maintenance') || allowed('staff-tasks')) && (
         <div>
           <button
             onClick={() => toggleGroup('operations')}
@@ -299,6 +336,7 @@ export function Sidebar({
 
           {expandedGroups.operations && (
             <div className="mt-0.5 space-y-0.5">
+              {allowed('housekeeping') && (
               <button
                 onClick={() => handleNav('housekeeping')}
                 className={subNavItemClass(currentModule === 'housekeeping')}
@@ -310,6 +348,8 @@ export function Sidebar({
                   </span>
                 )}
               </button>
+              )}
+              {allowed('maintenance') && (
               <button
                 onClick={() => handleNav('maintenance')}
                 className={subNavItemClass(currentModule === 'maintenance')}
@@ -321,17 +361,22 @@ export function Sidebar({
                   </span>
                 )}
               </button>
+              )}
+              {allowed('staff-tasks') && (
               <button
                 onClick={() => handleNav('staff-tasks')}
                 className={subNavItemClass(currentModule === 'staff-tasks')}
               >
                 <span>Staff Tasks</span>
               </button>
+              )}
             </div>
           )}
         </div>
+        )}
 
         {/* Finance Group */}
+        {(allowed('payments') || allowed('invoices') || allowed('expenses') || allowed('owner-settlements')) && (
         <div>
           <button
             onClick={() => toggleGroup('finance')}
@@ -350,35 +395,61 @@ export function Sidebar({
 
           {expandedGroups.finance && (
             <div className="mt-0.5 space-y-0.5">
+              {allowed('payments') && (
               <button
                 onClick={() => handleNav('payments')}
                 className={subNavItemClass(currentModule === 'payments')}
               >
                 <span>Payments</span>
               </button>
+              )}
+              {allowed('invoices') && (
               <button
                 onClick={() => handleNav('invoices')}
                 className={subNavItemClass(currentModule === 'invoices')}
               >
                 <span>Invoices</span>
               </button>
+              )}
+              {allowed('expenses') && (
               <button
                 onClick={() => handleNav('expenses')}
                 className={subNavItemClass(currentModule === 'expenses')}
               >
                 <span>Expenses</span>
               </button>
+              )}
+              {allowed('owner-settlements') && (
               <button
                 onClick={() => handleNav('owner-settlements')}
                 className={subNavItemClass(currentModule === 'owner-settlements')}
               >
                 <span>Owner Settlements</span>
               </button>
+              )}
             </div>
           )}
         </div>
+        )}
+
+        {/* Channel Manager (OTAs) */}
+        {allowed('channels') && (
+        <button
+          onClick={() => handleNav('channels')}
+          className={navItemClass(currentModule === 'channels')}
+        >
+          <div className="flex items-center gap-2.5">
+            <Globe2 className="w-4 h-4 shrink-0 text-violet-400" />
+            <span>Channel Manager</span>
+          </div>
+          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 tracking-wide">
+            OTA
+          </span>
+        </button>
+        )}
 
         {/* Reviews */}
+        {allowed('reviews') && (
         <button
           onClick={() => handleNav('reviews')}
           className={navItemClass(currentModule === 'reviews')}
@@ -388,8 +459,10 @@ export function Sidebar({
             <span>Reviews & Reputation</span>
           </div>
         </button>
+        )}
 
         {/* Reports */}
+        {allowed('reports') && (
         <button
           onClick={() => handleNav('reports')}
           className={navItemClass(currentModule === 'reports')}
@@ -399,8 +472,10 @@ export function Sidebar({
             <span>Reports & Analytics</span>
           </div>
         </button>
+        )}
 
         {/* Audit Log */}
+        {allowed('audit') && (
         <button
           onClick={() => handleNav('audit')}
           className={navItemClass(currentModule === 'audit')}
@@ -410,8 +485,10 @@ export function Sidebar({
             <span>Audit Trail</span>
           </div>
         </button>
+        )}
 
         {/* Settings */}
+        {allowed('settings') && (
         <button
           onClick={() => handleNav('settings')}
           className={navItemClass(currentModule === 'settings')}
@@ -421,17 +498,20 @@ export function Sidebar({
             <span>Settings</span>
           </div>
         </button>
+        )}
       </div>
 
       {/* User Footer */}
       <div className="p-3.5 border-t border-slate-800 bg-[#0B1120] flex items-center justify-between">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-teal-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-            AD
+            {user?.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U'}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-white truncate">Admin User</p>
-            <p className="text-[10px] text-teal-400 truncate">Operations Head</p>
+            <p className="text-xs font-semibold text-white truncate">{user?.name || 'User'}</p>
+            <p className="text-[10px] text-teal-400 truncate">
+              {role ? (ROLE_INFO_MAP[role]?.label ?? role) : ''}
+            </p>
           </div>
         </div>
       </div>
