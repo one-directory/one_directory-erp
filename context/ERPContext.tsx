@@ -29,25 +29,6 @@ import {
   ChannelRateRule,
 } from '@/types/erp';
 import {
-  INITIAL_PROPERTIES,
-  INITIAL_UNIT_TYPES,
-  INITIAL_UNITS,
-  INITIAL_GUESTS,
-  INITIAL_LEADS,
-  INITIAL_FOLLOW_UPS,
-  INITIAL_CALL_LOGS,
-  INITIAL_QUOTATIONS,
-  INITIAL_RESERVATIONS,
-  INITIAL_PAYMENTS,
-  INITIAL_INVOICES,
-  INITIAL_HOUSEKEEPING_TASKS,
-  INITIAL_MAINTENANCE_TICKETS,
-  INITIAL_STAFF_TASKS,
-  INITIAL_EXPENSES,
-  INITIAL_OWNER_SETTLEMENTS,
-  INITIAL_REVIEWS,
-  INITIAL_AUDIT_LOGS,
-  INITIAL_NOTIFICATIONS,
   INITIAL_CHANNEL_CONNECTIONS,
   INITIAL_CHANNEL_SYNC_EVENTS,
   INITIAL_CHANNEL_RATE_RULES,
@@ -167,6 +148,7 @@ interface ERPContextType {
   addReservation: (data: Partial<Reservation>) => void;
   checkInGuest: (reservationId: string) => void;
   checkOutGuest: (reservationId: string) => void;
+  cancelReservation: (reservationId: string) => void;
   recordPayment: (data: Partial<Payment>) => void;
   updateUnitStatus: (unitId: string, status: UnitStatus) => void;
   startHousekeepingTask: (taskId: string) => void;
@@ -189,29 +171,29 @@ interface ERPContextType {
 const ERPContext = createContext<ERPContextType | undefined>(undefined);
 
 export function ERPProvider({ children }: { children: React.ReactNode }) {
-  // Primary state initialized with realistic mock dataset
-  const [properties, setProperties] = useState<Property[]>(INITIAL_PROPERTIES);
+  // Primary state — starts empty; hydrated from DB on mount
+  const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('all');
-  const [unitTypes, setUnitTypes] = useState<UnitType[]>(INITIAL_UNIT_TYPES);
-  const [units, setUnits] = useState<Unit[]>(INITIAL_UNITS);
-  const [guests, setGuests] = useState<Guest[]>(INITIAL_GUESTS);
-  const [leads, setLeads] = useState<Lead[]>(INITIAL_LEADS);
-  const [followUps, setFollowUps] = useState<FollowUp[]>(INITIAL_FOLLOW_UPS);
-  const [callLogs, setCallLogs] = useState<CallLog[]>(INITIAL_CALL_LOGS);
-  const [quotations, setQuotations] = useState<Quotation[]>(INITIAL_QUOTATIONS);
-  const [reservations, setReservations] = useState<Reservation[]>(INITIAL_RESERVATIONS);
-  const [payments, setPayments] = useState<Payment[]>(INITIAL_PAYMENTS);
-  const [invoices, setInvoices] = useState<Invoice[]>(INITIAL_INVOICES);
-  const [housekeepingTasks, setHousekeepingTasks] = useState<HousekeepingTask[]>(INITIAL_HOUSEKEEPING_TASKS);
-  const [maintenanceTickets, setMaintenanceTickets] = useState<MaintenanceTicket[]>(INITIAL_MAINTENANCE_TICKETS);
-  const [staffTasks, setStaffTasks] = useState<StaffTask[]>(INITIAL_STAFF_TASKS);
-  const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
-  const [ownerSettlements, setOwnerSettlements] = useState<OwnerSettlement[]>(INITIAL_OWNER_SETTLEMENTS);
-  const [reviews, setReviews] = useState<Review[]>(INITIAL_REVIEWS);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
-  const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
+  const [unitTypes, setUnitTypes] = useState<UnitType[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+  const [callLogs, setCallLogs] = useState<CallLog[]>([]);
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [housekeepingTasks, setHousekeepingTasks] = useState<HousekeepingTask[]>([]);
+  const [maintenanceTickets, setMaintenanceTickets] = useState<MaintenanceTicket[]>([]);
+  const [staffTasks, setStaffTasks] = useState<StaffTask[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [ownerSettlements, setOwnerSettlements] = useState<OwnerSettlement[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  // Channel Manager & OTA Simulator state
+  // Channel Manager & OTA Simulator state (UI-only simulation — not persisted to DB)
   const [channelConnections, setChannelConnections] = useState<ChannelConnection[]>(INITIAL_CHANNEL_CONNECTIONS);
   const [channelSyncEvents, setChannelSyncEvents] = useState<ChannelSyncEvent[]>(INITIAL_CHANNEL_SYNC_EVENTS);
   const [channelRateRules, setChannelRateRules] = useState<ChannelRateRule[]>(INITIAL_CHANNEL_RATE_RULES);
@@ -235,15 +217,24 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Synchronize with backend PostgreSQL on mount
+  // Hydrate all primary state from PostgreSQL on mount
   useEffect(() => {
     let isMounted = true;
+
+    const normalizeReservationStatus = (s: string) =>
+      s === 'Checked_In' ? 'Checked In'
+      : s === 'In_House' ? 'In House'
+      : s === 'Checked_Out' ? 'Checked Out'
+      : s === 'No_Show' ? 'No Show'
+      : s;
+
     (async () => {
       try {
-        const res = await fetch('/api/properties?includeUnits=true');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && Array.isArray(json.data) && json.data.length > 0 && isMounted) {
+        // ── 1. Properties + Units ───────────────────────────────────────────
+        const resProp = await fetch('/api/properties?includeUnits=true');
+        if (resProp.ok) {
+          const json = await resProp.json();
+          if (json.success && Array.isArray(json.data) && isMounted) {
             const dbProps: Property[] = json.data.map((p: any) => ({
               id: p.id,
               name: p.name,
@@ -262,12 +253,7 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
               description: p.description || '',
               amenities: p.amenities || [],
             }));
-
-            setProperties((prev) => {
-              const existingIds = new Set(prev.map((p) => p.id));
-              const newProps = dbProps.filter((p) => !existingIds.has(p.id));
-              return [...newProps, ...prev];
-            });
+            setProperties(dbProps);
 
             const dbUnits: Unit[] = [];
             json.data.forEach((p: any) => {
@@ -277,33 +263,176 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
                     id: u.id,
                     propertyId: u.propertyId,
                     propertyName: u.propertyName || p.name,
-                    unitTypeId: u.unitTypeId,
+                    unitTypeId: u.unitTypeId || '',
                     unitTypeName: u.unitTypeName || 'Standard Room',
                     number: u.number,
                     name: u.name,
-                    floor: u.floor,
+                    floor: u.floor || 'Ground Floor',
                     status: u.status,
-                    currentReservationId: u.currentReservationId,
-                    currentGuestName: u.currentGuestName,
-                    currentCheckOut: u.currentCheckOut,
+                    currentReservationId: u.currentReservationId ?? undefined,
+                    currentGuestName: u.currentGuestName ?? undefined,
+                    currentCheckOut: u.currentCheckOut ?? undefined,
                   });
                 });
               }
             });
+            if (dbUnits.length > 0) setUnits(dbUnits);
+          }
+        }
 
-            if (dbUnits.length > 0) {
-              setUnits((prev) => {
-                const existingIds = new Set(prev.map((u) => u.id));
-                const newUnits = dbUnits.filter((u) => !existingIds.has(u.id));
-                return [...newUnits, ...prev];
-              });
-            }
+        // ── 2. Reservations ────────────────────────────────────────────────
+        const resBookings = await fetch('/api/reservations');
+        if (resBookings.ok) {
+          const bkgJson = await resBookings.json();
+          if (bkgJson.success && Array.isArray(bkgJson.data) && isMounted) {
+            const dbReservations: Reservation[] = bkgJson.data.map((r: any) => ({
+              id: r.id,
+              bookingId: r.bookingId,
+              guestId: r.guestId,
+              guestName: r.guestName,
+              guestPhone: r.guestPhone,
+              guestEmail: r.guestEmail,
+              propertyId: r.propertyId,
+              propertyName: r.propertyName,
+              unitId: r.unitId,
+              unitNumber: r.unitNumber,
+              unitTypeName: r.unitTypeName,
+              checkIn: r.checkIn,
+              checkOut: r.checkOut,
+              nights: r.nights,
+              guestsCount: r.guestsCount,
+              source: r.source,
+              rate: r.rate,
+              discount: r.discount,
+              tax: r.tax,
+              total: r.total,
+              paid: r.paid,
+              balance: r.balance,
+              status: normalizeReservationStatus(r.status),
+              specialRequests: r.specialRequests || '',
+              createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+              quotationId: r.quotationId ?? undefined,
+              leadId: r.leadId ?? undefined,
+            }));
+            if (isMounted) setReservations(dbReservations);
+          }
+        }
+
+        // ── 3. Guests ──────────────────────────────────────────────────────
+        const resGuests = await fetch('/api/guests');
+        if (resGuests.ok) {
+          const gJson = await resGuests.json();
+          if (gJson.success && Array.isArray(gJson.data) && isMounted) {
+            const dbGuests: Guest[] = gJson.data.map((g: any) => ({
+              id: g.id,
+              name: g.name,
+              phone: g.phone,
+              email: g.email,
+              idProofNumber: g.idProofNumber ?? undefined,
+              vip: g.vip ?? false,
+              totalStays: g.totalStays ?? 0,
+              lastStayDate: g.lastStayDate ?? undefined,
+              totalSpend: g.totalSpend ?? 0,
+              preferences: g.preferences ?? [],
+              status:
+                g.status === 'First_time' ? 'First-time'
+                : g.status === 'Blacklisted' ? 'Blacklisted'
+                : g.status === 'VIP' ? 'VIP'
+                : 'Regular',
+              createdAt: g.createdAt ? new Date(g.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            }));
+            setGuests(dbGuests);
+          }
+        }
+
+        // ── 4. Payments ────────────────────────────────────────────────────
+        const resPayments = await fetch('/api/payments');
+        if (resPayments.ok) {
+          const pJson = await resPayments.json();
+          if (pJson.success && Array.isArray(pJson.data) && isMounted) {
+            const dbPayments: Payment[] = pJson.data.map((p: any) => ({
+              id: p.id,
+              paymentId: p.paymentId,
+              reservationId: p.reservationId,
+              bookingId: p.bookingId,
+              guestName: p.guestName,
+              propertyId: p.propertyId,
+              propertyName: p.propertyName,
+              amount: p.amount,
+              method: p.method === 'Credit_Card' ? 'Credit Card'
+                : p.method === 'Debit_Card' ? 'Debit Card'
+                : p.method === 'Bank_Transfer' ? 'Bank Transfer'
+                : p.method === 'Payment_Gateway' ? 'Payment Gateway'
+                : p.method,
+              date: p.date,
+              time: p.time,
+              status: p.status,
+              referenceNumber: p.referenceNumber ?? undefined,
+              collectedBy: p.collectedBy ?? undefined,
+              notes: p.notes ?? undefined,
+            }));
+            setPayments(dbPayments);
+          }
+        }
+
+        // ── 5. Housekeeping Tasks ──────────────────────────────────────────
+        const resHk = await fetch('/api/housekeeping');
+        if (resHk.ok) {
+          const hkJson = await resHk.json();
+          if (hkJson.success && Array.isArray(hkJson.data) && isMounted) {
+            const dbHk: HousekeepingTask[] = hkJson.data.map((t: any) => ({
+              id: t.id,
+              propertyId: t.propertyId,
+              propertyName: t.propertyName,
+              unitId: t.unitId,
+              unitNumber: t.unitNumber,
+              taskType: t.taskType === 'Checkout_Cleaning' ? 'Checkout Cleaning'
+                : t.taskType === 'Regular_Cleaning' ? 'Regular Cleaning'
+                : t.taskType === 'Deep_Cleaning' ? 'Deep Cleaning'
+                : t.taskType === 'Linen_Change' ? 'Linen Change'
+                : t.taskType === 'Pest_Control' ? 'Pest Control'
+                : t.taskType,
+              assignedTo: t.assignedTo,
+              scheduledTime: t.scheduledTime,
+              status: t.status,
+              priority: t.priority,
+              notes: t.notes ?? '',
+              updatedAt: t.updatedAt ? new Date(t.updatedAt).toLocaleString() : undefined,
+            }));
+            setHousekeepingTasks(dbHk);
+          }
+        }
+
+        // ── 6. Maintenance Tickets ─────────────────────────────────────────
+        const resMaint = await fetch('/api/maintenance');
+        if (resMaint.ok) {
+          const mJson = await resMaint.json();
+          if (mJson.success && Array.isArray(mJson.data) && isMounted) {
+            const dbMaint: MaintenanceTicket[] = mJson.data.map((t: any) => ({
+              id: t.id,
+              ticketNumber: t.ticketNumber,
+              propertyId: t.propertyId,
+              propertyName: t.propertyName,
+              unitId: t.unitId,
+              unitNumber: t.unitNumber,
+              issue: t.issue,
+              description: t.description ?? '',
+              priority: t.priority,
+              assignedTo: t.assignedTo,
+              status: t.status,
+              createdAt: t.createdAt ? new Date(t.createdAt).toLocaleString() : '',
+              estimatedCost: t.estimatedCost ?? 0,
+              actualCost: t.actualCost ?? undefined,
+              resolutionNotes: t.resolutionNotes ?? undefined,
+            }));
+            setMaintenanceTickets(dbMaint);
           }
         }
       } catch (e) {
-        // Fallback gracefully to in-memory dataset if database is unreachable
+        console.warn('DB hydration error — running in offline mode:', e);
       }
     })();
+
     return () => {
       isMounted = false;
     };
@@ -596,12 +725,22 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     if (!quote) return;
 
     // Find available unit in that property
-    const availableUnit = units.find((u) => u.propertyId === quote.propertyId && u.status === 'Available') || units[0];
+    const availableUnit =
+      units.find((u) => u.propertyId === quote.propertyId && u.status === 'Available') ||
+      units.find((u) => u.propertyId === quote.propertyId) ||
+      units[0];
+    if (!availableUnit) {
+      showToast('No unit available', 'Cannot convert — no units found for this property.', 'error');
+      return;
+    }
+
+    const tempId = `res-${Date.now()}`;
+    const tempBookingId = `OD-BKG-${new Date().getFullYear()}-${String(Math.floor(900 + Math.random() * 100)).padStart(5, '0')}`;
 
     const newBooking: Reservation = {
-      id: `res-${Date.now()}`,
-      bookingId: `OD-BKG-2026-00${Math.floor(995 + Math.random() * 100)}`,
-      guestId: 'guest-1',
+      id: tempId,
+      bookingId: tempBookingId,
+      guestId: `guest-${Date.now()}`,
       guestName: quote.guestName,
       guestPhone: quote.guestPhone,
       guestEmail: quote.guestEmail,
@@ -623,7 +762,7 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
       balance: quote.total,
       status: 'Confirmed',
       specialRequests: quote.notes,
-      createdAt: '2026-09-19',
+      createdAt: new Date().toISOString().split('T')[0],
       quotationId: quote.id,
     };
 
@@ -637,18 +776,75 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     // If lead exists, update lead to Confirmed
     if (quote.leadId) {
       setLeads((prev) =>
-        prev.map((l) => (l.id === quote.leadId ? { ...l, status: 'Confirmed', reservationId: newBooking.id } : l))
+        prev.map((l) => (l.id === quote.leadId ? { ...l, status: 'Confirmed', reservationId: tempId } : l))
       );
     }
 
     addAuditLog(
       'Converted Quotation to Booking',
       'Reservations',
-      newBooking.bookingId,
-      `Converted quotation ${quote.quotationNumber} to booking ${newBooking.bookingId}`
+      tempBookingId,
+      `Converted quotation ${quote.quotationNumber} to booking ${tempBookingId}`
     );
 
-    showToast('Booking Created!', `Quotation converted to Booking ${newBooking.bookingId}`);
+    showToast('Booking Created!', `Quotation converted to Booking ${tempBookingId}`);
+
+    // Async DB sync
+    (async () => {
+      try {
+        const payload = {
+          guestName: newBooking.guestName,
+          guestPhone: newBooking.guestPhone,
+          guestEmail: newBooking.guestEmail,
+          propertyId: newBooking.propertyId,
+          propertyName: newBooking.propertyName,
+          unitId: availableUnit.id,
+          unitNumber: availableUnit.number,
+          unitTypeName: availableUnit.unitTypeName,
+          checkIn: newBooking.checkIn,
+          checkOut: newBooking.checkOut,
+          nights: newBooking.nights,
+          guestsCount: newBooking.guestsCount,
+          source: newBooking.source,
+          rate: newBooking.rate,
+          discount: newBooking.discount,
+          tax: newBooking.tax,
+          paid: 0,
+          status: newBooking.status,
+          specialRequests: newBooking.specialRequests,
+          quotationId: quote.id,
+          leadId: quote.leadId,
+        };
+
+        const res = await fetch('/api/reservations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data?.id) {
+            const dbRes = json.data;
+            // Reconcile temp IDs with DB-generated IDs
+            setReservations((prev) =>
+              prev.map((r) =>
+                r.id === tempId
+                  ? { ...r, id: dbRes.id, bookingId: dbRes.bookingId || r.bookingId, guestId: dbRes.guestId || r.guestId }
+                  : r
+              )
+            );
+            if (quote.leadId) {
+              setLeads((prev) =>
+                prev.map((l) => (l.id === quote.leadId ? { ...l, reservationId: dbRes.id } : l))
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('DB sync error for convertQuotationToBooking:', err);
+      }
+    })();
   };
 
   const addReservation = (data: Partial<Reservation>) => {
@@ -688,6 +884,17 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     };
 
     setReservations((prev) => [newRes, ...prev]);
+
+    // If initial status is Checked In, set unit Occupied
+    if (newRes.status === 'Checked In') {
+      setUnits((prev) =>
+        prev.map((u) =>
+          u.id === unit.id
+            ? { ...u, status: 'Occupied', currentReservationId: newRes.id, currentGuestName: newRes.guestName, currentCheckOut: newRes.checkOut }
+            : u
+        )
+      );
+    }
 
     // If paid > 0, record initial payment
     if (paid > 0) {
@@ -729,6 +936,78 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
 
     showToast('Reservation created', `Booking ${newRes.bookingId} confirmed & blocked across all OTAs.`);
     closeGlobalModal();
+
+    // Async PostgreSQL Sync
+    (async () => {
+      try {
+        const payload = {
+          guestName: newRes.guestName,
+          guestPhone: newRes.guestPhone,
+          guestEmail: newRes.guestEmail,
+          propertyId: prop.id,
+          propertyName: prop.name,
+          unitId: unit.id,
+          unitNumber: unit.number,
+          unitTypeName: unit.unitTypeName,
+          checkIn: newRes.checkIn,
+          checkOut: newRes.checkOut,
+          nights: newRes.nights,
+          guestsCount: newRes.guestsCount,
+          source: newRes.source,
+          rate: newRes.rate,
+          discount: newRes.discount,
+          tax: newRes.tax,
+          paid: newRes.paid,
+          status: newRes.status,
+          specialRequests: newRes.specialRequests,
+        };
+
+        const res = await fetch('/api/reservations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data?.id) {
+            const dbRes = json.data;
+            setReservations((prev) =>
+              prev.map((r) =>
+                r.id === newRes.id
+                  ? {
+                      ...r,
+                      id: dbRes.id,
+                      bookingId: dbRes.bookingId || r.bookingId,
+                      guestId: dbRes.guestId || r.guestId,
+                    }
+                  : r
+              )
+            );
+
+            setUnits((prev) =>
+              prev.map((u) =>
+                u.id === unit.id && u.currentReservationId === newRes.id
+                  ? { ...u, currentReservationId: dbRes.id }
+                  : u
+              )
+            );
+
+            if (paid > 0) {
+              setPayments((prev) =>
+                prev.map((p) =>
+                  p.reservationId === newRes.id
+                    ? { ...p, reservationId: dbRes.id, bookingId: dbRes.bookingId }
+                    : p
+                )
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('PostgreSQL sync error for reservation:', err);
+      }
+    })();
   };
 
   const checkInGuest = (reservationId: string) => {
@@ -749,6 +1028,31 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
 
     addAuditLog('Checked In Guest', 'Reservations', res.bookingId, `Checked in ${res.guestName} to ${res.unitNumber}`);
     showToast('Check-in Complete', `${res.guestName} checked in to ${res.unitNumber}`);
+
+    // Async PostgreSQL Sync
+    (async () => {
+      try {
+        await fetch(`/api/reservations/${reservationId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'check-in' }),
+        });
+        if (res.unitId) {
+          await fetch(`/api/units/${res.unitId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: 'Occupied',
+              currentReservationId: res.id,
+              currentGuestName: res.guestName,
+              currentCheckOut: res.checkOut,
+            }),
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to sync check-in to database:', e);
+      }
+    })();
   };
 
   const checkOutGuest = (reservationId: string) => {
@@ -794,44 +1098,114 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     );
 
     showToast('Guest Checked Out', `Unit ${res.unitNumber} set to Dirty. Housekeeping task dispatched.`);
+
+    // Async PostgreSQL Sync
+    (async () => {
+      try {
+        await fetch(`/api/reservations/${reservationId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'check-out' }),
+        });
+        if (res.unitId) {
+          await fetch(`/api/units/${res.unitId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: 'Dirty',
+              currentReservationId: null,
+              currentGuestName: null,
+              currentCheckOut: null,
+            }),
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to sync check-out to database:', e);
+      }
+    })();
+  };
+
+  const cancelReservation = (reservationId: string) => {
+    const res = reservations.find((r) => r.id === reservationId);
+    if (!res) return;
+
+    setReservations((prev) =>
+      prev.map((r) => (r.id === reservationId ? { ...r, status: 'Cancelled' } : r))
+    );
+
+    if (res.unitId) {
+      setUnits((prev) =>
+        prev.map((u) =>
+          u.id === res.unitId && u.currentReservationId === res.id
+            ? { ...u, status: 'Available', currentReservationId: undefined, currentGuestName: undefined, currentCheckOut: undefined }
+            : u
+        )
+      );
+    }
+
+    addAuditLog('Cancelled Reservation', 'Reservations', res.bookingId, `Cancelled reservation for ${res.guestName}`);
+    showToast('Reservation Cancelled', `Booking ${res.bookingId} cancelled. Unit ${res.unitNumber} released.`);
+
+    // Async PostgreSQL Sync
+    (async () => {
+      try {
+        await fetch(`/api/reservations/${reservationId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'cancel' }),
+        });
+        if (res.unitId) {
+          await fetch(`/api/units/${res.unitId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: 'Available',
+              currentReservationId: null,
+              currentGuestName: null,
+              currentCheckOut: null,
+            }),
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to sync cancellation to database:', e);
+      }
+    })();
   };
 
   const recordPayment = (data: Partial<Payment>) => {
     const amount = data.amount || 0;
     const res = reservations.find((r) => r.id === data.reservationId);
 
+    const tempId = `pay-${Date.now()}`;
+    const tempPaymentId = `OD-PAY-${new Date().getFullYear()}-${String(Math.floor(300 + Math.random() * 100)).padStart(5, '0')}`;
+
     const newPayment: Payment = {
-      id: `pay-${Date.now()}`,
-      paymentId: `OD-PAY-2026-${Math.floor(330 + Math.random() * 70)}`,
-      reservationId: data.reservationId || 'res-1',
-      bookingId: res?.bookingId || data.bookingId || 'OD-BKG-2026-00982',
+      id: tempId,
+      paymentId: tempPaymentId,
+      reservationId: data.reservationId || '',
+      bookingId: res?.bookingId || data.bookingId || '',
       guestName: res?.guestName || data.guestName || 'Guest',
-      propertyId: res?.propertyId || data.propertyId || properties[0].id,
-      propertyName: res?.propertyName || data.propertyName || properties[0].name,
+      propertyId: res?.propertyId || data.propertyId || (properties[0]?.id ?? ''),
+      propertyName: res?.propertyName || data.propertyName || (properties[0]?.name ?? ''),
       amount,
       method: data.method || 'UPI',
-      date: '2026-09-19',
+      date: new Date().toISOString().split('T')[0],
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'Success',
       referenceNumber: data.referenceNumber || `TXN-${Math.floor(100000 + Math.random() * 900000)}`,
       collectedBy: data.collectedBy || 'Reception Desk',
-      ...data,
     };
 
     setPayments((prev) => [newPayment, ...prev]);
 
-    // Update reservation balance if reservation linked
+    // Update reservation balance optimistically
     if (res) {
       setReservations((prev) =>
         prev.map((r) => {
           if (r.id !== res.id) return r;
           const newPaid = r.paid + amount;
           const newBal = Math.max(0, r.total - newPaid);
-          return {
-            ...r,
-            paid: newPaid,
-            balance: newBal,
-          };
+          return { ...r, paid: newPaid, balance: newBal };
         })
       );
     }
@@ -839,6 +1213,39 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     addAuditLog('Recorded Payment', 'Finance', newPayment.paymentId, `Recorded ₹${amount} via ${newPayment.method} for ${newPayment.guestName}`);
     showToast('Payment recorded successfully', `Received ₹${amount.toLocaleString('en-IN')}`);
     closeGlobalModal();
+
+    // Async DB sync
+    (async () => {
+      try {
+        if (!newPayment.reservationId) return;
+        const res = await fetch('/api/payments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reservationId: newPayment.reservationId,
+            amount,
+            method: newPayment.method,
+            referenceNumber: newPayment.referenceNumber,
+            collectedBy: newPayment.collectedBy,
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data?.id) {
+            // Reconcile the temp payment entry with DB IDs
+            setPayments((prev) =>
+              prev.map((p) =>
+                p.id === tempId
+                  ? { ...p, id: json.data.id, paymentId: json.data.paymentId || p.paymentId }
+                  : p
+              )
+            );
+          }
+        }
+      } catch (err) {
+        console.warn('DB sync error for recordPayment:', err);
+      }
+    })();
   };
 
   const updateUnitStatus = (unitId: string, status: UnitStatus) => {
@@ -1275,6 +1682,31 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
 
     setChannelSyncEvents((prev) => [cancelEvt, ...prev]);
     showToast('OTA Booking Cancelled', `Unit ${res.unitNumber} released back into channel distribution.`, 'warning');
+
+    // Async DB sync
+    (async () => {
+      try {
+        await fetch(`/api/reservations/${res.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'cancel' }),
+        });
+        if (res.unitId) {
+          await fetch(`/api/units/${res.unitId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: 'Available',
+              currentReservationId: null,
+              currentGuestName: null,
+              currentCheckOut: null,
+            }),
+          });
+        }
+      } catch (e) {
+        console.warn('DB sync error for simulateOtaCancellation:', e);
+      }
+    })();
   };
 
   const updateChannelSettings = (channelId: string, updates: Partial<ChannelConnection>) => {
@@ -1511,6 +1943,7 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
         addReservation,
         checkInGuest,
         checkOutGuest,
+        cancelReservation,
         recordPayment,
         updateUnitStatus,
         startHousekeepingTask,

@@ -40,6 +40,7 @@ export function DetailDrawerManager() {
     properties,
     checkInGuest,
     checkOutGuest,
+    cancelReservation,
     completeHousekeepingTask,
     inspectHousekeepingTask,
     resolveMaintenanceTicket,
@@ -403,6 +404,18 @@ export function DetailDrawerManager() {
               )}
             </div>
             <div className="flex items-center gap-2">
+              {(res.status === 'Confirmed' || res.status === 'Pending') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                  onClick={() => {
+                    cancelReservation(res.id);
+                  }}
+                >
+                  Cancel Booking
+                </Button>
+              )}
               {res.status === 'Confirmed' && (
                 <Button
                   variant="success"

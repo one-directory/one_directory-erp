@@ -1,4 +1,4 @@
-import { PropertyType, PropertyStatus, UnitStatus } from '@prisma/client';
+import { PropertyType, PropertyStatus, UnitStatus, ReservationStatus, BookingSource } from '@prisma/client';
 
 export function toPrismaPropertyType(type?: string): PropertyType {
   if (!type) return 'Hotel';
@@ -47,3 +47,42 @@ export function toPrismaUnitStatus(status?: string): UnitStatus {
   };
   return map[status] || 'Available';
 }
+
+export function toPrismaReservationStatus(status?: string): ReservationStatus {
+  if (!status) return 'Confirmed';
+  const map: Record<string, ReservationStatus> = {
+    Pending: 'Pending',
+    Confirmed: 'Confirmed',
+    'Checked In': 'Checked_In',
+    Checked_In: 'Checked_In',
+    'In House': 'In_House',
+    In_House: 'In_House',
+    'Checked Out': 'Checked_Out',
+    Checked_Out: 'Checked_Out',
+    Completed: 'Completed',
+    Cancelled: 'Cancelled',
+    'No Show': 'No_Show',
+    No_Show: 'No_Show',
+  };
+  return map[status] || 'Confirmed';
+}
+
+export function toPrismaBookingSource(source?: string): BookingSource {
+  if (!source) return 'Website';
+  const map: Record<string, BookingSource> = {
+    Website: 'Website',
+    'Walk-in': 'Walk_in',
+    Walk_in: 'Walk_in',
+    Phone: 'Phone',
+    WhatsApp: 'WhatsApp',
+    'Booking.com': 'Booking_com',
+    Booking_com: 'Booking_com',
+    Agoda: 'Agoda',
+    Airbnb: 'Airbnb',
+    MakeMyTrip: 'MakeMyTrip',
+    Expedia: 'Expedia',
+    Other: 'Other',
+  };
+  return map[source] || 'Website';
+}
+

@@ -24,6 +24,7 @@ export function ReservationsListView() {
     openGlobalModal,
     checkInGuest,
     checkOutGuest,
+    cancelReservation,
   } = useERP();
 
   const [statusFilter, setStatusFilter] = useState('all');

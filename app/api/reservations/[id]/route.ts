@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ReservationStatus } from '@prisma/client';
+import { toPrismaReservationStatus } from '@/lib/prisma-enums';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -61,7 +62,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (action === 'check-in') targetStatus = 'Checked_In';
     else if (action === 'check-out') targetStatus = 'Checked_Out';
     else if (action === 'cancel') targetStatus = 'Cancelled';
-    else if (status) targetStatus = status as ReservationStatus;
+    else if (status) targetStatus = toPrismaReservationStatus(status);
 
     let updatedPaid = existing.paid;
     if (paid !== undefined) {
@@ -143,3 +144,44 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     );
   }
 }
+
+// DELETE /api/reservations/[id]
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  try {
+    const { id } = await context.params;
+
+    const existing = await prisma.reservation.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ success: false, error: 'Reservation not found' }, { status: 404 });
+    }
+
+    // Release unit if linked
+    if (existing.unitId) {
+      await prisma.unit.update({
+        where: { id: existing.unitId },
+        data: {
+          status: 'Available',
+          currentReservationId: null,
+          currentGuestName: null,
+          currentCheckOut: null,
+        },
+      });
+    }
+
+    await prisma.reservation.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true, message: `Reservation ${existing.bookingId} deleted successfully.` });
+  } catch (error: any) {
+    console.error('Error deleting reservation:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete reservation', details: error?.message },
+      { status: 500 }
+    );
+  }
+}
+

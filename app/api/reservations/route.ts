@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ReservationStatus, BookingSource, UnitStatus } from '@prisma/client';
+import { toPrismaReservationStatus, toPrismaBookingSource } from '@/lib/prisma-enums';
 
 // GET /api/reservations
 export async function GET(request: NextRequest) {
@@ -93,16 +94,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [property, unit] = await Promise.all([
-      prisma.property.findUnique({ where: { id: propertyId } }),
-      prisma.unit.findUnique({ where: { id: unitId }, include: { unitType: true } }),
-    ]);
-
+    // Resolve or provision Property on-demand to satisfy foreign keys
+    let property = await prisma.property.findUnique({ where: { id: propertyId } });
     if (!property) {
-      return NextResponse.json({ success: false, error: 'Property not found.' }, { status: 404 });
+      property = await prisma.property.create({
+        data: {
+          id: propertyId,
+          name: body.propertyName || 'One Directory Property',
+          type: 'Resort',
+          location: 'Goa, India',
+          contact: guestPhone,
+          totalUnits: 10,
+          status: 'Active',
+          ownerName: 'Property Owner',
+          ownerEmail: 'owner@onedirectory.com',
+          ownerPhone: guestPhone,
+          description: body.propertyDescription || 'One Directory Managed Property',
+        },
+      });
     }
+
+    // Resolve or provision Unit on-demand to satisfy foreign keys
+    let unit = await prisma.unit.findUnique({ where: { id: unitId }, include: { unitType: true } });
     if (!unit) {
-      return NextResponse.json({ success: false, error: 'Unit not found.' }, { status: 404 });
+      let unitType = await prisma.unitType.findFirst({ where: { propertyId: property.id } });
+      if (!unitType) {
+        unitType = await prisma.unitType.create({
+          data: {
+            propertyId: property.id,
+            propertyName: property.name,
+            name: body.unitTypeName || 'Deluxe Room',
+            capacity: 2,
+            bedConfiguration: '1 King Bed',
+            baseRate: Number(rate) || 5000,
+            numberOfUnits: 5,
+            status: 'Active',
+          },
+        });
+      }
+
+      unit = await prisma.unit.create({
+        data: {
+          id: unitId,
+          propertyId: property.id,
+          propertyName: property.name,
+          unitTypeId: unitType.id,
+          unitTypeName: unitType.name,
+          number: body.unitNumber || '101',
+          name: `${unitType.name} ${body.unitNumber || '101'}`,
+          floor: '1',
+          status: 'Available',
+        },
+        include: { unitType: true },
+      });
     }
 
     // Find or create guest
@@ -112,7 +156,7 @@ export async function POST(request: NextRequest) {
         data: {
           name: guestName,
           phone: guestPhone,
-          email: guestEmail,
+          email: guestEmail || `${guestName.toLowerCase().replace(/\s+/g, '.')}@example.com`,
           status: 'First_time',
         },
       });
@@ -130,18 +174,8 @@ export async function POST(request: NextRequest) {
     const numPaid = Number(paid) || 0;
     const balance = total - numPaid;
 
-    const sourceMap: Record<string, BookingSource> = {
-      'Website': 'Website',
-      'Walk-in': 'Walk_in',
-      'Phone': 'Phone',
-      'WhatsApp': 'WhatsApp',
-      'Booking.com': 'Booking_com',
-      'Agoda': 'Agoda',
-      'Airbnb': 'Airbnb',
-      'MakeMyTrip': 'MakeMyTrip',
-      'Expedia': 'Expedia',
-      'Other': 'Other',
-    };
+    const prismaStatus = toPrismaReservationStatus(status);
+    const prismaSource = toPrismaBookingSource(source);
 
     const reservation = await prisma.reservation.create({
       data: {
@@ -149,24 +183,24 @@ export async function POST(request: NextRequest) {
         guestId: guest.id,
         guestName,
         guestPhone,
-        guestEmail,
-        propertyId,
+        guestEmail: guest.email,
+        propertyId: property.id,
         propertyName: property.name,
-        unitId,
+        unitId: unit.id,
         unitNumber: unit.number,
         unitTypeName: unit.unitTypeName,
         checkIn,
         checkOut,
         nights: numNights,
         guestsCount: Number(guestsCount) || 2,
-        source: sourceMap[source] || 'Website',
+        source: prismaSource,
         rate: numRate,
         discount: numDiscount,
         tax: numTax,
         total,
         paid: numPaid,
         balance,
-        status: (status as ReservationStatus) || 'Confirmed',
+        status: prismaStatus,
         specialRequests,
         quotationId,
         leadId,
@@ -190,7 +224,7 @@ export async function POST(request: NextRequest) {
 
     // Update unit with current reservation info
     await prisma.unit.update({
-      where: { id: unitId },
+      where: { id: unit.id },
       data: {
         currentReservationId: reservation.id,
         currentGuestName: guestName,
