@@ -207,10 +207,10 @@ export function FollowUpCenterView() {
           <Tabs
             variant="pill"
             tabs={[
-              { id: 'due-today', label: 'Due Today', count: countDueToday || 18 },
-              { id: 'overdue', label: 'Overdue', count: countOverdue || 4 },
-              { id: 'tomorrow', label: 'Tomorrow', count: countTomorrow || 11 },
-              { id: 'this-week', label: 'This Week', count: countThisWeek || 42 },
+              { id: 'due-today', label: 'Due Today', count: countDueToday },
+              { id: 'overdue', label: 'Overdue', count: countOverdue },
+              { id: 'tomorrow', label: 'Tomorrow', count: countTomorrow },
+              { id: 'this-week', label: 'This Week', count: countThisWeek },
               { id: 'completed', label: 'Completed' },
               { id: 'all', label: 'All Follow-ups' },
             ]}

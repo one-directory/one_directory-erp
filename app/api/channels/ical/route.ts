@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 function formatICalDate(dateStr: string): string {
   // Converts YYYY-MM-DD to YYYYMMDD
@@ -6,69 +7,81 @@ function formatICalDate(dateStr: string): string {
 }
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const propertyId = searchParams.get('propertyId') || 'prop-1';
-  const unitId = searchParams.get('unitId');
-  const channel = searchParams.get('channel') || 'All';
+  try {
+    const { searchParams } = new URL(req.url);
+    const propertyId = searchParams.get('propertyId');
+    const unitId = searchParams.get('unitId');
+    const channel = searchParams.get('channel') || 'All';
 
-  // Sample active reservations to block on the iCal feed
-  const blockedPeriods = [
-    {
-      uid: `block-${propertyId}-001@onedirectory.com`,
-      start: '20260922',
-      end: '20260925',
-      summary: 'Reserved - One Directory ERP Booking #BK-98410',
-      description: 'Synchronized from One Directory PMS. Closed for arrivals/departures.',
-    },
-    {
-      uid: `block-${propertyId}-002@onedirectory.com`,
-      start: '20260927',
-      end: '20260930',
-      summary: 'Reserved - Direct Guest Check-in #BK-98418',
-      description: 'Occupied Unit. Channel parity lock.',
-    },
-    {
-      uid: `block-${propertyId}-003@onedirectory.com`,
-      start: '20261003',
-      end: '20261007',
-      summary: 'Reserved - Luxury Villa Package #BK-98425',
-      description: 'VIP Guest reservation.',
-    },
-  ];
+    const whereClause: any = {
+      status: { in: ['Confirmed', 'Checked_In', 'In_House'] },
+    };
 
-  const nowStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    if (propertyId && propertyId !== 'all') {
+      whereClause.propertyId = propertyId;
+    }
+    if (unitId && unitId !== 'all') {
+      whereClause.unitId = unitId;
+    }
 
-  const eventsStr = blockedPeriods
-    .map(
-      (b) => `BEGIN:VEVENT
-UID:${b.uid}
-DTSTAMP:${nowStamp}
-DTSTART;VALUE=DATE:${b.start}
-DTEND;VALUE=DATE:${b.end}
-SUMMARY:${b.summary}
-DESCRIPTION:${b.description}
-STATUS:CONFIRMED
-TRANSP:OPAQUE
-END:VEVENT`
-    )
-    .join('\r\n');
+    const reservations = await prisma.reservation.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        bookingId: true,
+        checkIn: true,
+        checkOut: true,
+        guestName: true,
+        source: true,
+        propertyId: true,
+        unitId: true,
+      },
+      orderBy: { checkIn: 'asc' },
+    });
 
-  const icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//One Directory ERP//Hospitality Channel Manager 1.0//EN
-CALSCALE:GREGORIAN
-METHOD:PUBLISH
-X-WR-CALNAME:One Directory ERP Calendar - ${propertyId} (${channel})
-X-WR-TIMEZONE:Asia/Kolkata
-${eventsStr}
-END:VCALENDAR`;
+    const nowStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
-  return new NextResponse(icsContent, {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/calendar; charset=utf-8',
-      'Content-Disposition': `inline; filename="onedirectory-${propertyId}-${channel.toLowerCase()}.ics"`,
-      'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
-    },
-  });
+    const eventsStr = reservations
+      .map((r) => {
+        const start = formatICalDate(r.checkIn);
+        const end = formatICalDate(r.checkOut);
+        const uid = `res-${r.id}@onedirectory.com`;
+        const summary = `Reserved - ${r.guestName} (#${r.bookingId})`;
+        const description = `Source: ${r.source}. Synced from One Directory PMS.`;
+
+        return `BEGIN:VEVENT\r\nUID:${uid}\r\nDTSTAMP:${nowStamp}\r\nDTSTART;VALUE=DATE:${start}\r\nDTEND;VALUE=DATE:${end}\r\nSUMMARY:${summary}\r\nDESCRIPTION:${description}\r\nSTATUS:CONFIRMED\r\nTRANSP:OPAQUE\r\nEND:VEVENT`;
+      })
+      .join('\r\n');
+
+    const calName =
+      propertyId && propertyId !== 'all'
+        ? `One Directory ERP Calendar - ${propertyId} (${channel})`
+        : `One Directory ERP Calendar - All Properties (${channel})`;
+
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//One Directory ERP//Hospitality Channel Manager 1.0//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      `X-WR-CALNAME:${calName}`,
+      'X-WR-TIMEZONE:Asia/Kolkata',
+      eventsStr ? eventsStr : '',
+      'END:VCALENDAR',
+    ]
+      .filter(Boolean)
+      .join('\r\n');
+
+    return new NextResponse(icsContent, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/calendar; charset=utf-8',
+        'Content-Disposition': `inline; filename="onedirectory-${propertyId || 'all'}-${channel.toLowerCase()}.ics"`,
+        'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
+      },
+    });
+  } catch (error: any) {
+    console.error('Error generating iCal feed:', error);
+    return new NextResponse('Error generating iCal feed', { status: 500 });
+  }
 }

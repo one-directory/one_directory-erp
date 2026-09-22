@@ -428,6 +428,122 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
             setMaintenanceTickets(dbMaint);
           }
         }
+
+        // ── 7. Leads ────────────────────────────────────────────────────────
+        const resLeads = await fetch('/api/leads');
+        if (resLeads.ok) {
+          const lJson = await resLeads.json();
+          if (lJson.success && Array.isArray(lJson.data) && isMounted) {
+            const dbLeads: Lead[] = lJson.data.map((l: any) => ({
+              id: l.id,
+              leadNumber: l.leadNumber,
+              guestName: l.guestName,
+              guestPhone: l.guestPhone,
+              guestEmail: l.guestEmail || '',
+              propertyId: l.propertyId,
+              propertyName: l.propertyName,
+              checkIn: l.checkIn,
+              checkOut: l.checkOut,
+              guestsCount: l.guestsCount,
+              estimatedValue: l.estimatedValue,
+              source: l.source === 'Phone_Call' ? 'Phone Call' : l.source === 'Walk_in' ? 'Walk-in' : l.source,
+              assignedTo: l.assignedTo,
+              status:
+                l.status === 'Quotation_Sent' ? 'Quotation Sent'
+                : l.status === 'Follow_up' ? 'Follow-up'
+                : l.status === 'Not_Interested' ? 'Not Interested'
+                : l.status === 'No_Response' ? 'No Response'
+                : l.status,
+              nextFollowUpDate: l.nextFollowUpDate,
+              notes: l.notes || '',
+              createdAt: l.createdAt ? new Date(l.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+              quotationId: l.quotationId ?? undefined,
+              reservationId: l.reservationId ?? undefined,
+            }));
+            setLeads(dbLeads);
+          }
+        }
+
+        // ── 8. Follow-ups ──────────────────────────────────────────────────
+        const resFu = await fetch('/api/follow-ups');
+        if (resFu.ok) {
+          const fuJson = await resFu.json();
+          if (fuJson.success && Array.isArray(fuJson.data) && isMounted) {
+            const dbFu: FollowUp[] = fuJson.data.map((f: any) => ({
+              id: f.id,
+              leadId: f.leadId ?? undefined,
+              guestId: f.guestId ?? undefined,
+              guestName: f.guestName,
+              guestPhone: f.guestPhone,
+              propertyId: f.propertyId,
+              propertyName: f.propertyName,
+              type: f.type === 'Phone_Call' ? 'Phone Call' : f.type === 'In_Person' ? 'In Person' : f.type,
+              purpose: f.purpose,
+              scheduledDate: f.scheduledDate,
+              scheduledTime: f.scheduledTime,
+              assignedTo: f.assignedTo,
+              status: f.status,
+              urgency: f.urgency === 'Due_Today' ? 'Due Today' : f.urgency === 'This_Week' ? 'This Week' : f.urgency,
+              notes: f.notes || '',
+              completedAt: f.completedAt ? new Date(f.completedAt).toISOString().split('T')[0] : undefined,
+            }));
+            setFollowUps(dbFu);
+          }
+        }
+
+        // ── 9. Quotations ───────────────────────────────────────────────────
+        const resQuotes = await fetch('/api/quotations');
+        if (resQuotes.ok) {
+          const qJson = await resQuotes.json();
+          if (qJson.success && Array.isArray(qJson.data) && isMounted) {
+            const dbQuotes: Quotation[] = qJson.data.map((q: any) => ({
+              id: q.id,
+              quotationNumber: q.quotationNumber,
+              leadId: q.leadId ?? undefined,
+              guestName: q.guestName,
+              guestPhone: q.guestPhone,
+              guestEmail: q.guestEmail || '',
+              propertyId: q.propertyId,
+              propertyName: q.propertyName,
+              roomTypeName: q.roomTypeName,
+              checkIn: q.checkIn,
+              checkOut: q.checkOut,
+              nights: q.nights,
+              guestsCount: q.guestsCount,
+              roomCharge: q.roomCharge,
+              extraGuestCharge: q.extraGuestCharge,
+              discount: q.discount,
+              tax: q.tax,
+              total: q.total,
+              validUntil: q.validUntil,
+              status: q.status,
+              notes: q.notes || '',
+              createdAt: q.createdAt ? new Date(q.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            }));
+            setQuotations(dbQuotes);
+          }
+        }
+
+        // ── 10. Expenses ────────────────────────────────────────────────────
+        const resExp = await fetch('/api/expenses');
+        if (resExp.ok) {
+          const eJson = await resExp.json();
+          if (eJson.success && Array.isArray(eJson.data) && isMounted) {
+            const dbExp: Expense[] = eJson.data.map((e: any) => ({
+              id: e.id,
+              date: e.date,
+              propertyId: e.propertyId,
+              propertyName: e.propertyName,
+              category: e.category === 'OTA_Commission' ? 'OTA Commission' : e.category,
+              vendor: e.vendor,
+              description: e.description,
+              amount: e.amount,
+              status: e.status,
+              paymentMode: e.paymentMode,
+            }));
+            setExpenses(dbExp);
+          }
+        }
       } catch (e) {
         console.warn('DB hydration error — running in offline mode:', e);
       }
@@ -609,19 +725,25 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addFollowUp = (data: Partial<FollowUp>) => {
+    const prop = properties.find((p) => p.id === data.propertyId) || properties[0];
+    if (!prop) {
+      showToast('Cannot schedule follow-up', 'Please add a property first', 'error');
+      return;
+    }
+    const tempId = `fu-${Date.now()}`;
     const newFollowUp: FollowUp = {
-      id: `fu-${Date.now()}`,
+      id: tempId,
       guestName: data.guestName || 'Guest',
       guestPhone: data.guestPhone || '+91 98000 00000',
-      propertyId: data.propertyId || properties[0].id,
-      propertyName: properties.find((p) => p.id === data.propertyId)?.name || properties[0].name,
+      propertyId: prop.id,
+      propertyName: prop.name,
       type: data.type || 'Phone Call',
       purpose: data.purpose || 'Follow-up inquiry',
-      scheduledDate: data.scheduledDate || '2026-09-19',
+      scheduledDate: data.scheduledDate || new Date().toISOString().split('T')[0],
       scheduledTime: data.scheduledTime || '12:00 PM',
-      assignedTo: data.assignedTo || 'Arun',
+      assignedTo: data.assignedTo || 'Sales Team',
       status: 'Pending',
-      urgency: data.scheduledDate === '2026-09-19' ? 'Due Today' : 'Tomorrow',
+      urgency: data.urgency || 'Due Today',
       notes: data.notes || '',
       ...data,
     };
@@ -629,36 +751,75 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     addAuditLog('Created Follow-up', 'CRM', newFollowUp.id, `Created follow-up for ${newFollowUp.guestName}`);
     showToast('Follow-up scheduled', `Scheduled for ${newFollowUp.guestName}`);
     closeGlobalModal();
+
+    (async () => {
+      try {
+        const res = await fetch('/api/follow-ups', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId: newFollowUp.leadId,
+            guestId: newFollowUp.guestId,
+            guestName: newFollowUp.guestName,
+            guestPhone: newFollowUp.guestPhone,
+            propertyId: newFollowUp.propertyId,
+            type: newFollowUp.type,
+            purpose: newFollowUp.purpose,
+            scheduledDate: newFollowUp.scheduledDate,
+            scheduledTime: newFollowUp.scheduledTime,
+            assignedTo: newFollowUp.assignedTo,
+            urgency: newFollowUp.urgency,
+            notes: newFollowUp.notes,
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data?.id) {
+            setFollowUps((prev) =>
+              prev.map((f) => (f.id === tempId ? { ...f, id: json.data.id } : f))
+            );
+          }
+        }
+      } catch (e) {
+        console.error('Failed to sync follow-up to DB:', e);
+      }
+    })();
   };
 
   const addLead = (data: Partial<Lead>) => {
     const prop = properties.find((p) => p.id === data.propertyId) || properties[0];
+    if (!prop) {
+      showToast('Cannot create lead', 'Please add a property first', 'error');
+      return;
+    }
+    const tempLeadId = `lead-${Date.now()}`;
+    const tempFuId = `fu-${Date.now()}`;
     const newLead: Lead = {
-      id: `lead-${Date.now()}`,
-      leadNumber: `OD-LEAD-2026-${Math.floor(10000 + Math.random() * 90000).toString().slice(1)}`,
+      id: tempLeadId,
+      leadNumber: `OD-LEAD-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000).toString().slice(1)}`,
       guestName: data.guestName || 'New Inquirer',
       guestPhone: data.guestPhone || '+91 99000 11000',
       guestEmail: data.guestEmail || 'guest@example.com',
       propertyId: prop.id,
       propertyName: prop.name,
-      checkIn: data.checkIn || '2026-09-25',
-      checkOut: data.checkOut || '2026-09-27',
+      checkIn: data.checkIn || new Date().toISOString().split('T')[0],
+      checkOut: data.checkOut || new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
       guestsCount: data.guestsCount || 2,
       estimatedValue: data.estimatedValue || 12000,
       source: data.source || 'Phone Call',
-      assignedTo: data.assignedTo || 'Arun',
+      assignedTo: data.assignedTo || 'Sales Team',
       status: data.status || 'New',
-      nextFollowUpDate: data.nextFollowUpDate || '2026-09-19',
+      nextFollowUpDate: data.nextFollowUpDate || new Date().toISOString().split('T')[0],
       notes: data.notes || 'Inquired about property availability.',
-      createdAt: '2026-09-19',
+      createdAt: new Date().toISOString().split('T')[0],
       ...data,
     };
 
     setLeads((prev) => [newLead, ...prev]);
 
-    // Also auto-create a FollowUp if not existing
+    // Also auto-create a FollowUp
     const newFu: FollowUp = {
-      id: `fu-${Date.now()}`,
+      id: tempFuId,
       leadId: newLead.id,
       guestName: newLead.guestName,
       guestPhone: newLead.guestPhone,
@@ -678,6 +839,72 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     addAuditLog('Created Lead', 'CRM', newLead.id, `Created lead ${newLead.leadNumber} for ${newLead.guestName}`);
     showToast('Lead created', `Lead ${newLead.leadNumber} added to pipeline.`);
     closeGlobalModal();
+
+    (async () => {
+      try {
+        const res = await fetch('/api/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            guestName: newLead.guestName,
+            guestPhone: newLead.guestPhone,
+            guestEmail: newLead.guestEmail,
+            propertyId: newLead.propertyId,
+            checkIn: newLead.checkIn,
+            checkOut: newLead.checkOut,
+            guestsCount: newLead.guestsCount,
+            estimatedValue: newLead.estimatedValue,
+            source: newLead.source,
+            assignedTo: newLead.assignedTo,
+            status: newLead.status,
+            nextFollowUpDate: newLead.nextFollowUpDate,
+            notes: newLead.notes,
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data?.id) {
+            const dbLeadId = json.data.id;
+            const dbLeadNumber = json.data.leadNumber || newLead.leadNumber;
+            setLeads((prev) =>
+              prev.map((l) => (l.id === tempLeadId ? { ...l, id: dbLeadId, leadNumber: dbLeadNumber } : l))
+            );
+            setFollowUps((prev) =>
+              prev.map((f) => (f.id === tempFuId ? { ...f, leadId: dbLeadId } : f))
+            );
+
+            // Persist the auto-created follow-up
+            const fuRes = await fetch('/api/follow-ups', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                leadId: dbLeadId,
+                guestName: newFu.guestName,
+                guestPhone: newFu.guestPhone,
+                propertyId: newFu.propertyId,
+                type: newFu.type,
+                purpose: newFu.purpose,
+                scheduledDate: newFu.scheduledDate,
+                scheduledTime: newFu.scheduledTime,
+                assignedTo: newFu.assignedTo,
+                urgency: newFu.urgency,
+                notes: newFu.notes,
+              }),
+            });
+            if (fuRes.ok) {
+              const fuJson = await fuRes.json();
+              if (fuJson.success && fuJson.data?.id) {
+                setFollowUps((prev) =>
+                  prev.map((f) => (f.id === tempFuId ? { ...f, id: fuJson.data.id } : f))
+                );
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to sync lead to DB:', e);
+      }
+    })();
   };
 
   const updateLeadStatus = (leadId: string, status: LeadStatus) => {
@@ -685,32 +912,49 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
       prev.map((l) => (l.id === leadId ? { ...l, status } : l))
     );
     showToast('Lead status updated', `Moved to ${status}`);
+
+    (async () => {
+      try {
+        await fetch(`/api/leads/${leadId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status }),
+        });
+      } catch (e) {
+        console.error('Failed to update lead status in DB:', e);
+      }
+    })();
   };
 
   const addQuotation = (data: Partial<Quotation>) => {
     const prop = properties.find((p) => p.id === data.propertyId) || properties[0];
+    if (!prop) {
+      showToast('Cannot create quotation', 'Please add a property first', 'error');
+      return;
+    }
+    const tempId = `quot-${Date.now()}`;
     const newQuote: Quotation = {
-      id: `quot-${Date.now()}`,
-      quotationNumber: `OD-Q-2026-00${Math.floor(25 + Math.random() * 50)}`,
+      id: tempId,
+      quotationNumber: `OD-Q-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
       leadId: data.leadId,
       guestName: data.guestName || 'Guest',
       guestPhone: data.guestPhone || '+91 98000 00000',
       guestEmail: data.guestEmail || 'guest@example.com',
       propertyId: prop.id,
       propertyName: prop.name,
-      roomTypeName: data.roomTypeName || 'Deluxe Room',
-      checkIn: data.checkIn || '2026-09-25',
-      checkOut: data.checkOut || '2026-09-27',
+      roomTypeName: data.roomTypeName || 'Standard Room',
+      checkIn: data.checkIn || new Date().toISOString().split('T')[0],
+      checkOut: data.checkOut || new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
       nights: data.nights || 2,
       guestsCount: data.guestsCount || 2,
       roomCharge: data.roomCharge || 12000,
       extraGuestCharge: data.extraGuestCharge || 0,
       discount: data.discount || 0,
-      tax: data.tax || 1440,
-      total: (data.roomCharge || 12000) + (data.extraGuestCharge || 0) - (data.discount || 0) + (data.tax || 1440),
-      validUntil: data.validUntil || '2026-09-23',
+      tax: data.tax || Math.round(((data.roomCharge || 12000) + (data.extraGuestCharge || 0) - (data.discount || 0)) * 0.12),
+      total: (data.roomCharge || 12000) + (data.extraGuestCharge || 0) - (data.discount || 0) + (data.tax || Math.round(((data.roomCharge || 12000) + (data.extraGuestCharge || 0) - (data.discount || 0)) * 0.12)),
+      validUntil: data.validUntil || new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
       status: 'Sent',
-      createdAt: '2026-09-19',
+      createdAt: new Date().toISOString().split('T')[0],
       notes: data.notes || '',
       ...data,
     };
@@ -718,6 +962,41 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     addAuditLog('Created Quotation', 'CRM', newQuote.id, `Created quotation ${newQuote.quotationNumber} for ${newQuote.guestName}`);
     showToast('Quotation created', `Quotation ${newQuote.quotationNumber} generated`);
     closeGlobalModal();
+
+    (async () => {
+      try {
+        const res = await fetch('/api/quotations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId: newQuote.leadId,
+            guestName: newQuote.guestName,
+            guestPhone: newQuote.guestPhone,
+            guestEmail: newQuote.guestEmail,
+            propertyId: newQuote.propertyId,
+            roomTypeName: newQuote.roomTypeName,
+            checkIn: newQuote.checkIn,
+            checkOut: newQuote.checkOut,
+            nights: newQuote.nights,
+            guestsCount: newQuote.guestsCount,
+            roomCharge: newQuote.roomCharge,
+            extraGuestCharge: newQuote.extraGuestCharge,
+            discount: newQuote.discount,
+            notes: newQuote.notes,
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data?.id) {
+            setQuotations((prev) =>
+              prev.map((q) => (q.id === tempId ? { ...q, id: json.data.id, quotationNumber: json.data.quotationNumber || q.quotationNumber } : q))
+            );
+          }
+        }
+      } catch (e) {
+        console.error('Failed to sync quotation to DB:', e);
+      }
+    })();
   };
 
   const convertQuotationToBooking = (quotationId: string) => {
@@ -1269,12 +1548,24 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     if (!task) return;
 
     setHousekeepingTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: 'Cleaning', updatedAt: '2026-09-19 ' + new Date().toLocaleTimeString() } : t))
+      prev.map((t) => (t.id === taskId ? { ...t, status: 'Cleaning', updatedAt: new Date().toLocaleString() } : t))
     );
     setUnits((prev) =>
       prev.map((u) => (u.id === task.unitId ? { ...u, status: 'Cleaning' } : u))
     );
     showToast('Cleaning in progress', `Unit ${task.unitNumber} marked as Cleaning`);
+
+    (async () => {
+      try {
+        await fetch(`/api/housekeeping/${taskId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'Cleaning' }),
+        });
+      } catch (e) {
+        console.error('Failed to update housekeeping status in DB:', e);
+      }
+    })();
   };
 
   const completeHousekeepingTask = (taskId: string) => {
@@ -1282,13 +1573,24 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     if (!task) return;
 
     setHousekeepingTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: 'Completed', updatedAt: '2026-09-19 ' + new Date().toLocaleTimeString() } : t))
+      prev.map((t) => (t.id === taskId ? { ...t, status: 'Inspection', updatedAt: new Date().toLocaleString() } : t))
     );
-    // When completed, unit becomes Available!
     setUnits((prev) =>
-      prev.map((u) => (u.id === task.unitId ? { ...u, status: 'Available' } : u))
+      prev.map((u) => (u.id === task.unitId ? { ...u, status: 'Inspection' } : u))
     );
-    showToast('Housekeeping task completed', `Unit ${task.unitNumber} is now Available!`);
+    showToast('Housekeeping task completed', `Unit ${task.unitNumber} awaiting Inspection`);
+
+    (async () => {
+      try {
+        await fetch(`/api/housekeeping/${taskId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'Inspection' }),
+        });
+      } catch (e) {
+        console.error('Failed to update housekeeping status in DB:', e);
+      }
+    })();
   };
 
   const inspectHousekeepingTask = (taskId: string) => {
@@ -1296,20 +1598,37 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     if (!task) return;
 
     setHousekeepingTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: 'Completed', updatedAt: '2026-09-19 ' + new Date().toLocaleTimeString() } : t))
+      prev.map((t) => (t.id === taskId ? { ...t, status: 'Completed', updatedAt: new Date().toLocaleString() } : t))
     );
     setUnits((prev) =>
       prev.map((u) => (u.id === task.unitId ? { ...u, status: 'Available' } : u))
     );
     showToast('Inspection approved', `Unit ${task.unitNumber} verified & Available`);
+
+    (async () => {
+      try {
+        await fetch(`/api/housekeeping/${taskId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'Completed' }),
+        });
+      } catch (e) {
+        console.error('Failed to update housekeeping status in DB:', e);
+      }
+    })();
   };
 
   const addHousekeepingTask = (data: Partial<HousekeepingTask>) => {
     const prop = properties.find((p) => p.id === data.propertyId) || properties[0];
-    const unit = units.find((u) => u.id === data.unitId) || units.find((u) => u.propertyId === prop.id) || units[0];
+    const unit = units.find((u) => u.id === data.unitId) || units.find((u) => u.propertyId === prop?.id) || units[0];
+    if (!prop || !unit) {
+      showToast('Cannot schedule task', 'Please add a property and unit first', 'error');
+      return;
+    }
 
+    const tempId = `hk-${Date.now()}`;
     const newTask: HousekeepingTask = {
-      id: `hk-${Date.now()}`,
+      id: tempId,
       propertyId: prop.id,
       propertyName: prop.name,
       unitId: unit.id,
@@ -1320,32 +1639,65 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
       status: 'Pending',
       priority: data.priority || 'Normal',
       notes: data.notes || '',
-      updatedAt: '2026-09-19 12:00 PM',
+      updatedAt: new Date().toLocaleString(),
       ...data,
     };
 
     setHousekeepingTasks((prev) => [newTask, ...prev]);
     showToast('Housekeeping task scheduled', `Assigned ${newTask.taskType} for ${newTask.unitNumber}`);
     closeGlobalModal();
+
+    (async () => {
+      try {
+        const res = await fetch('/api/housekeeping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            propertyId: newTask.propertyId,
+            unitId: newTask.unitId,
+            taskType: newTask.taskType,
+            assignedTo: newTask.assignedTo,
+            scheduledTime: newTask.scheduledTime,
+            priority: newTask.priority,
+            notes: newTask.notes,
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data?.id) {
+            setHousekeepingTasks((prev) =>
+              prev.map((t) => (t.id === tempId ? { ...t, id: json.data.id } : t))
+            );
+          }
+        }
+      } catch (e) {
+        console.error('Failed to sync housekeeping task to DB:', e);
+      }
+    })();
   };
 
   const addMaintenanceTicket = (data: Partial<MaintenanceTicket>) => {
     const prop = properties.find((p) => p.id === data.propertyId) || properties[0];
-    const unit = units.find((u) => u.id === data.unitId) || units.find((u) => u.propertyId === prop.id) || units[0];
+    const unit = units.find((u) => u.id === data.unitId) || units.find((u) => u.propertyId === prop?.id) || units[0];
+    if (!prop || !unit) {
+      showToast('Cannot log maintenance ticket', 'Please add a property and unit first', 'error');
+      return;
+    }
 
+    const tempId = `mt-${Date.now()}`;
     const newTicket: MaintenanceTicket = {
-      id: `mt-${Date.now()}`,
-      ticketNumber: `MT-${Math.floor(1050 + Math.random() * 50)}`,
+      id: tempId,
+      ticketNumber: `MT-${Math.floor(1050 + Math.random() * 9000)}`,
       propertyId: prop.id,
       propertyName: prop.name,
       unitId: unit.id,
       unitNumber: unit.number,
       issue: data.issue || 'Maintenance issue',
-      description: data.description || '',
+      description: data.description || data.issue || 'Maintenance issue reported',
       priority: data.priority || 'High',
       assignedTo: data.assignedTo || 'Maintenance Lead',
       status: 'Open',
-      createdAt: '2026-09-19 ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date().toLocaleString(),
       estimatedCost: data.estimatedCost || 2000,
       ...data,
     };
@@ -1360,6 +1712,34 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     addAuditLog('Created Maintenance Ticket', 'Operations', newTicket.ticketNumber, `Reported ${newTicket.issue} in ${newTicket.unitNumber}`);
     showToast('Maintenance ticket logged', `Unit ${newTicket.unitNumber} marked as Maintenance`);
     closeGlobalModal();
+
+    (async () => {
+      try {
+        const res = await fetch('/api/maintenance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            propertyId: newTicket.propertyId,
+            unitId: newTicket.unitId,
+            issue: newTicket.issue,
+            description: newTicket.description,
+            priority: newTicket.priority,
+            assignedTo: newTicket.assignedTo,
+            estimatedCost: newTicket.estimatedCost,
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data?.id) {
+            setMaintenanceTickets((prev) =>
+              prev.map((t) => (t.id === tempId ? { ...t, id: json.data.id, ticketNumber: json.data.ticketNumber || t.ticketNumber } : t))
+            );
+          }
+        }
+      } catch (e) {
+        console.error('Failed to sync maintenance ticket to DB:', e);
+      }
+    })();
   };
 
   const resolveMaintenanceTicket = (ticketId: string, notes?: string) => {
@@ -1370,20 +1750,40 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
       prev.map((t) => (t.id === ticketId ? { ...t, status: 'Resolved', resolutionNotes: notes || 'Repaired and verified.' } : t))
     );
 
-    // Flips unit status to Inspection or Available
+    // Flips unit status to Available
     setUnits((prev) =>
       prev.map((u) => (u.id === ticket.unitId ? { ...u, status: 'Available' } : u))
     );
 
     addAuditLog('Resolved Maintenance Ticket', 'Operations', ticket.ticketNumber, `Resolved ticket for ${ticket.unitNumber}`);
     showToast('Maintenance resolved', `Unit ${ticket.unitNumber} returned to service (Available)`);
+
+    (async () => {
+      try {
+        await fetch(`/api/maintenance/${ticketId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'Resolved',
+            resolutionNotes: notes || 'Repaired and verified.',
+          }),
+        });
+      } catch (e) {
+        console.error('Failed to resolve maintenance ticket in DB:', e);
+      }
+    })();
   };
 
   const addExpense = (data: Partial<Expense>) => {
     const prop = properties.find((p) => p.id === data.propertyId) || properties[0];
+    if (!prop) {
+      showToast('Cannot record expense', 'Please add a property first', 'error');
+      return;
+    }
+    const tempId = `exp-${Date.now()}`;
     const newExp: Expense = {
-      id: `exp-${Date.now()}`,
-      date: '2026-09-19',
+      id: tempId,
+      date: data.date || new Date().toISOString().split('T')[0],
       propertyId: prop.id,
       propertyName: prop.name,
       category: data.category || 'Supplies',
@@ -1397,11 +1797,41 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     setExpenses((prev) => [newExp, ...prev]);
     showToast('Expense recorded', `Added ₹${newExp.amount.toLocaleString('en-IN')} under ${newExp.category}`);
     closeGlobalModal();
+
+    (async () => {
+      try {
+        const res = await fetch('/api/expenses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            propertyId: newExp.propertyId,
+            date: newExp.date,
+            category: newExp.category,
+            vendor: newExp.vendor,
+            description: newExp.description,
+            amount: newExp.amount,
+            paymentMode: newExp.paymentMode,
+            status: newExp.status,
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data?.id) {
+            setExpenses((prev) =>
+              prev.map((e) => (e.id === tempId ? { ...e, id: json.data.id } : e))
+            );
+          }
+        }
+      } catch (e) {
+        console.error('Failed to sync expense to DB:', e);
+      }
+    })();
   };
 
   const addGuest = (data: Partial<Guest>) => {
+    const tempId = `guest-${Date.now()}`;
     const newG: Guest = {
-      id: `guest-${Date.now()}`,
+      id: tempId,
       name: data.name || 'New Guest',
       phone: data.phone || '+91 98000 00000',
       email: data.email || 'guest@example.com',
@@ -1411,12 +1841,39 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
       totalSpend: 0,
       preferences: data.preferences || [],
       status: data.vip ? 'VIP' : 'First-time',
-      createdAt: '2026-09-19',
+      createdAt: new Date().toISOString().split('T')[0],
       ...data,
     };
     setGuests((prev) => [newG, ...prev]);
     showToast('Guest profile created', `${newG.name} registered`);
     closeGlobalModal();
+
+    (async () => {
+      try {
+        const res = await fetch('/api/guests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newG.name,
+            phone: newG.phone,
+            email: newG.email,
+            idProofNumber: newG.idProofNumber,
+            vip: newG.vip,
+            preferences: newG.preferences,
+            status: newG.status === 'First-time' ? 'First_time' : newG.status,
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data?.id) {
+            const dbId = json.data.id;
+            setGuests((prev) => prev.map((g) => (g.id === tempId ? { ...g, id: dbId } : g)));
+          }
+        }
+      } catch (e) {
+        console.error('Failed to sync guest to DB:', e);
+      }
+    })();
   };
 
   const replyToReview = (reviewId: string, replyText: string) => {

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useERP } from '@/context/ERPContext';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Users, Plus, Search, Star, Phone, Mail, Calendar } from 'lucide-react';
 
 export function GuestsView() {
@@ -60,7 +61,16 @@ export function GuestsView() {
       </div>
 
       {/* Guests Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+      {filteredGuests.length === 0 ? (
+        <EmptyState
+          icon={<Users className="w-6 h-6" />}
+          title="No guest profiles found"
+          description="Register your first guest or adjust your search filter to view profiles."
+          actionLabel="+ Register Guest"
+          onAction={() => openGlobalModal('new-guest')}
+        />
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
@@ -123,6 +133,7 @@ export function GuestsView() {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

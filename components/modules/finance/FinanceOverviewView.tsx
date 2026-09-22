@@ -5,6 +5,7 @@ import { useERP } from '@/context/ERPContext';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Tabs } from '@/components/ui/Tabs';
+import { EmptyState } from '@/components/ui/EmptyState';
 import {
   CreditCard,
   Receipt,
@@ -128,171 +129,206 @@ export function FinanceOverviewView({ initialTab = 'payments' }: { initialTab?: 
 
       {/* TAB 1: PAYMENTS */}
       {activeTab === 'payments' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
-                <th className="py-3 px-4">Payment ID</th>
-                <th className="py-3 px-4">Booking & Guest</th>
-                <th className="py-3 px-4">Property</th>
-                <th className="py-3 px-4">Amount</th>
-                <th className="py-3 px-4">Method & Ref</th>
-                <th className="py-3 px-4">Date & Time</th>
-                <th className="py-3 px-4">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredPayments.map((pay) => (
-                <tr key={pay.id} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="py-3.5 px-4 font-mono font-bold text-teal-800">{pay.paymentId}</td>
-                  <td className="py-3.5 px-4">
-                    <p className="font-bold text-slate-900">{pay.guestName}</p>
-                    <p className="text-[11px] font-mono text-slate-400">{pay.bookingId}</p>
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-700 font-medium">{pay.propertyName}</td>
-                  <td className="py-3.5 px-4 font-bold text-emerald-700 font-tabular text-sm">
-                    ₹{pay.amount.toLocaleString('en-IN')}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="font-semibold text-slate-800">{pay.method}</span>
-                    <p className="text-[10px] text-slate-400 font-mono">{pay.referenceNumber}</p>
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-600">
-                    <p>{pay.date}</p>
-                    <p className="text-[10px] text-slate-400">{pay.time}</p>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <Badge status={pay.status} size="xs">
-                      {pay.status}
-                    </Badge>
-                  </td>
+        filteredPayments.length === 0 ? (
+          <EmptyState
+            icon={<CreditCard className="w-6 h-6" />}
+            title="No payments recorded"
+            description="Guest payment transactions recorded via cash, card, UPI, or gateway will appear here."
+            actionLabel="+ Record Payment"
+            onAction={() => openGlobalModal('record-payment')}
+          />
+        ) : (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
+                  <th className="py-3 px-4">Payment ID</th>
+                  <th className="py-3 px-4">Booking & Guest</th>
+                  <th className="py-3 px-4">Property</th>
+                  <th className="py-3 px-4">Amount</th>
+                  <th className="py-3 px-4">Method & Ref</th>
+                  <th className="py-3 px-4">Date & Time</th>
+                  <th className="py-3 px-4">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredPayments.map((pay) => (
+                  <tr key={pay.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3.5 px-4 font-mono font-bold text-teal-800">{pay.paymentId}</td>
+                    <td className="py-3.5 px-4">
+                      <p className="font-bold text-slate-900">{pay.guestName}</p>
+                      <p className="text-[11px] font-mono text-slate-400">{pay.bookingId}</p>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-700 font-medium">{pay.propertyName}</td>
+                    <td className="py-3.5 px-4 font-bold text-emerald-700 font-tabular text-sm">
+                      ₹{pay.amount.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="font-semibold text-slate-800">{pay.method}</span>
+                      <p className="text-[10px] text-slate-400 font-mono">{pay.referenceNumber}</p>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-600">
+                      <p>{pay.date}</p>
+                      <p className="text-[10px] text-slate-400">{pay.time}</p>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <Badge status={pay.status} size="xs">
+                        {pay.status}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
 
       {/* TAB 2: INVOICES */}
       {activeTab === 'invoices' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
-                <th className="py-3 px-4">Invoice No</th>
-                <th className="py-3 px-4">Guest</th>
-                <th className="py-3 px-4">Property & GSTIN</th>
-                <th className="py-3 px-4">Invoice Date</th>
-                <th className="py-3 px-4">Subtotal</th>
-                <th className="py-3 px-4">Tax</th>
-                <th className="py-3 px-4">Total</th>
-                <th className="py-3 px-4">Balance</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredInvoices.map((inv) => (
-                <tr key={inv.id} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="py-3.5 px-4 font-mono font-bold text-teal-800">
-                    {inv.invoiceNumber}
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-900">{inv.guestName}</td>
-                  <td className="py-3.5 px-4">
-                    <p className="font-medium text-slate-800">{inv.propertyName}</p>
-                    <p className="text-[10px] font-mono text-slate-400">{inv.propertyGstin}</p>
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-600">{inv.invoiceDate}</td>
-                  <td className="py-3.5 px-4 font-tabular font-medium text-slate-700">
-                    ₹{inv.subtotal.toLocaleString('en-IN')}
-                  </td>
-                  <td className="py-3.5 px-4 font-tabular text-slate-500">
-                    ₹{inv.tax.toLocaleString('en-IN')}
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-900 font-tabular">
-                    ₹{inv.total.toLocaleString('en-IN')}
-                  </td>
-                  <td className="py-3.5 px-4 font-tabular font-semibold">
-                    {inv.balance > 0 ? (
-                      <span className="text-rose-600">₹{inv.balance.toLocaleString('en-IN')}</span>
-                    ) : (
-                      <span className="text-emerald-600">₹0</span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <Badge status={inv.status} size="xs">
-                      {inv.status}
-                    </Badge>
-                  </td>
-                  <td className="py-3.5 px-4 text-right whitespace-nowrap space-x-1.5">
-                    <Button
-                      variant="outline"
-                      size="xs"
-                      icon={<Printer className="w-3 h-3" />}
-                      onClick={() => showToast('Printing invoice...', `Dispatched ${inv.invoiceNumber} to printer`)}
-                    >
-                      Print
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      icon={<Download className="w-3 h-3" />}
-                      onClick={() => showToast('Downloading invoice PDF...', `Saved ${inv.invoiceNumber}.pdf`)}
-                    >
-                      PDF
-                    </Button>
-                  </td>
+        filteredInvoices.length === 0 ? (
+          <EmptyState
+            icon={<Receipt className="w-6 h-6" />}
+            title="No invoices generated"
+            description="Itemized GST invoices are issued upon guest reservation confirmations and check-outs."
+          />
+        ) : (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
+                  <th className="py-3 px-4">Invoice No</th>
+                  <th className="py-3 px-4">Guest</th>
+                  <th className="py-3 px-4">Property & GSTIN</th>
+                  <th className="py-3 px-4">Invoice Date</th>
+                  <th className="py-3 px-4">Subtotal</th>
+                  <th className="py-3 px-4">Tax</th>
+                  <th className="py-3 px-4">Total</th>
+                  <th className="py-3 px-4">Balance</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredInvoices.map((inv) => (
+                  <tr key={inv.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3.5 px-4 font-mono font-bold text-teal-800">
+                      {inv.invoiceNumber}
+                    </td>
+                    <td className="py-3.5 px-4 font-bold text-slate-900">{inv.guestName}</td>
+                    <td className="py-3.5 px-4">
+                      <p className="font-medium text-slate-800">{inv.propertyName}</p>
+                      <p className="text-[10px] font-mono text-slate-400">{inv.propertyGstin}</p>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-600">{inv.invoiceDate}</td>
+                    <td className="py-3.5 px-4 font-tabular font-medium text-slate-700">
+                      ₹{inv.subtotal.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-3.5 px-4 font-tabular text-slate-500">
+                      ₹{inv.tax.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-3.5 px-4 font-bold text-slate-900 font-tabular">
+                      ₹{inv.total.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-3.5 px-4 font-tabular font-semibold">
+                      {inv.balance > 0 ? (
+                        <span className="text-rose-600">₹{inv.balance.toLocaleString('en-IN')}</span>
+                      ) : (
+                        <span className="text-emerald-600">₹0</span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <Badge status={inv.status} size="xs">
+                        {inv.status}
+                      </Badge>
+                    </td>
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap space-x-1.5">
+                      <Button
+                        variant="outline"
+                        size="xs"
+                        icon={<Printer className="w-3 h-3" />}
+                        onClick={() => showToast('Printing invoice...', `Dispatched ${inv.invoiceNumber} to printer`)}
+                      >
+                        Print
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        icon={<Download className="w-3 h-3" />}
+                        onClick={() => showToast('Downloading invoice PDF...', `Saved ${inv.invoiceNumber}.pdf`)}
+                      >
+                        PDF
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
 
       {/* TAB 3: EXPENSES */}
       {activeTab === 'expenses' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4">Property</th>
-                <th className="py-3 px-4">Category</th>
-                <th className="py-3 px-4">Vendor</th>
-                <th className="py-3 px-4">Description</th>
-                <th className="py-3 px-4">Amount</th>
-                <th className="py-3 px-4">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredExpenses.map((exp) => (
-                <tr key={exp.id} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="py-3.5 px-4 font-mono text-slate-600">{exp.date}</td>
-                  <td className="py-3.5 px-4 font-semibold text-slate-800">{exp.propertyName}</td>
-                  <td className="py-3.5 px-4">
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100 font-semibold text-[11px] text-slate-700">
-                      {exp.category}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 font-medium text-slate-800">{exp.vendor}</td>
-                  <td className="py-3.5 px-4 text-slate-600 max-w-xs truncate">{exp.description}</td>
-                  <td className="py-3.5 px-4 font-bold text-slate-900 font-tabular text-sm">
-                    ₹{exp.amount.toLocaleString('en-IN')}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <Badge status={exp.status} size="xs">
-                      {exp.status}
-                    </Badge>
-                  </td>
+        filteredExpenses.length === 0 ? (
+          <EmptyState
+            icon={<Wallet className="w-6 h-6" />}
+            title="No expenses recorded"
+            description="Operating costs such as utilities, OTA commissions, cleaning supplies, and repairs will appear here."
+            actionLabel="+ Add Expense"
+            onAction={() => openGlobalModal('add-expense')}
+          />
+        ) : (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
+                  <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4">Property</th>
+                  <th className="py-3 px-4">Category</th>
+                  <th className="py-3 px-4">Vendor</th>
+                  <th className="py-3 px-4">Description</th>
+                  <th className="py-3 px-4">Amount</th>
+                  <th className="py-3 px-4">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredExpenses.map((exp) => (
+                  <tr key={exp.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3.5 px-4 font-mono text-slate-600">{exp.date}</td>
+                    <td className="py-3.5 px-4 font-semibold text-slate-800">{exp.propertyName}</td>
+                    <td className="py-3.5 px-4">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 font-semibold text-[11px] text-slate-700">
+                        {exp.category}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 font-medium text-slate-800">{exp.vendor}</td>
+                    <td className="py-3.5 px-4 text-slate-600 max-w-xs truncate">{exp.description}</td>
+                    <td className="py-3.5 px-4 font-bold text-slate-900 font-tabular text-sm">
+                      ₹{exp.amount.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <Badge status={exp.status} size="xs">
+                        {exp.status}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
 
       {/* TAB 4: OWNER SETTLEMENTS */}
       {activeTab === 'settlements' && (
+        filteredSettlements.length === 0 ? (
+          <EmptyState
+            icon={<Landmark className="w-6 h-6" />}
+            title="No owner settlements generated"
+            description="Monthly owner profit disbursement statements are generated after each settlement cycle completes."
+          />
+        ) : (
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
             <table className="w-full text-left text-xs">
@@ -379,6 +415,7 @@ export function FinanceOverviewView({ initialTab = 'payments' }: { initialTab?: 
             </div>
           </div>
         </div>
+        )
       )}
     </div>
   );

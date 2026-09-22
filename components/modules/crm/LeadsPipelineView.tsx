@@ -5,6 +5,7 @@ import { useERP } from '@/context/ERPContext';
 import { Lead, LeadStatus } from '@/types/erp';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import {
   Kanban,
   Table as TableIcon,
@@ -93,8 +94,15 @@ export function LeadsPipelineView() {
         </div>
       </div>
 
-      {/* KANBAN BOARD */}
-      {viewMode === 'kanban' ? (
+      {filteredLeads.length === 0 ? (
+        <EmptyState
+          icon={<Kanban className="w-6 h-6" />}
+          title="No leads in pipeline"
+          description="Capture new guest inquiries and track them from first contact through confirmed booking."
+          actionLabel="+ New Lead"
+          onAction={() => openGlobalModal('new-lead')}
+        />
+      ) : viewMode === 'kanban' ? (
         <div className="flex gap-4 overflow-x-auto pb-6 pt-1">
           {stages.map((stage) => {
             const stageLeads = filteredLeads.filter((l) => l.status === stage.key);

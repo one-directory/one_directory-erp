@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useERP } from '@/context/ERPContext';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Wrench, Plus, CheckCircle, AlertTriangle, Clock, ShieldAlert } from 'lucide-react';
 
 export function MaintenanceView() {
@@ -48,7 +49,16 @@ export function MaintenanceView() {
         </Button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Wrench className="w-6 h-6" />}
+          title="No maintenance tickets"
+          description="All units are operational and in service with zero pending repair tickets."
+          actionLabel="+ Log Maintenance Ticket"
+          onAction={() => openGlobalModal('maintenance-ticket')}
+        />
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
@@ -109,6 +119,7 @@ export function MaintenanceView() {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }
