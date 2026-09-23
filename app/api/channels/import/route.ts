@@ -105,12 +105,12 @@ export async function POST(req: NextRequest) {
     for (const evt of parsedEvents) {
       const uidSignature = `[iCal-UID:${evt.uid}]`;
 
-      // Check if this external UID is already saved
+      // Check if this external UID is already saved in specialRequests
       const existing = await prisma.reservation.findFirst({
         where: {
           propertyId,
-          notes: { contains: uidSignature },
-        } as any,
+          specialRequests: { contains: uidSignature },
+        },
       });
 
       if (existing) {

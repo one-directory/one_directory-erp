@@ -8,6 +8,7 @@ import { Tabs } from '@/components/ui/Tabs';
 import { Settings, Users, Building2, Bell, Shield, Sliders, Check } from 'lucide-react';
 
 import { StaffManagementTab } from './StaffManagementTab';
+import { DataImportTab } from './DataImportTab';
 
 export function SettingsView() {
   const { showToast } = useERP();
@@ -18,7 +19,7 @@ export function SettingsView() {
       <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs">
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900">System & ERP Configuration</h1>
         <p className="text-xs text-slate-500 mt-1">
-          Company profile, staff role-based access controls, tax settings, and booking policies
+          Company profile, staff role-based access controls, tax settings, bulk data migration, and booking policies
         </p>
       </div>
 
@@ -28,6 +29,7 @@ export function SettingsView() {
           { id: 'users', label: 'Users & Roles' },
           { id: 'booking', label: 'Booking & Tax Policies' },
           { id: 'notifications', label: 'Notification Rules' },
+          { id: 'import', label: 'Data Import & Migration' },
         ]}
         activeTab={activeTab}
         onChange={setActiveTab}
@@ -141,6 +143,9 @@ export function SettingsView() {
           </div>
         </div>
       )}
+
+      {/* Data Import & Migration Tab */}
+      {activeTab === 'import' && <DataImportTab />}
     </div>
   );
 }

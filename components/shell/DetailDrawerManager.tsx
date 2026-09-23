@@ -1,10 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useERP } from '@/context/ERPContext';
 import { Drawer } from '@/components/ui/Drawer';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { Reservation } from '@/types/erp';
+import { PrintableInvoiceModal } from '@/components/modules/finance/PrintableInvoiceModal';
 import {
   Phone,
   MessageSquare,
@@ -48,6 +50,8 @@ export function DetailDrawerManager() {
     openGlobalModal,
     showToast,
   } = useERP();
+
+  const [printReservation, setPrintReservation] = useState<Reservation | null>(null);
 
   if (!activeDrawer) return null;
 
@@ -375,7 +379,8 @@ export function DetailDrawerManager() {
     if (!res) return null;
 
     return (
-      <Drawer
+      <>
+        <Drawer
         isOpen={true}
         onClose={closeDrawer}
         title={res.bookingId}
@@ -389,7 +394,7 @@ export function DetailDrawerManager() {
                 variant="outline"
                 size="sm"
                 icon={<Printer className="w-3.5 h-3.5" />}
-                onClick={() => showToast('Simulating Invoice Print', `Printed invoice for ${res.bookingId}`)}
+                onClick={() => setPrintReservation(res)}
               >
                 Print Invoice
               </Button>
@@ -515,6 +520,14 @@ export function DetailDrawerManager() {
           )}
         </div>
       </Drawer>
+      {printReservation && (
+        <PrintableInvoiceModal
+          isOpen={!!printReservation}
+          onClose={() => setPrintReservation(null)}
+          reservation={printReservation}
+        />
+      )}
+    </>
     );
   }
 

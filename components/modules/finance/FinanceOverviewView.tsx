@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Tabs } from '@/components/ui/Tabs';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { PrintableInvoiceModal } from './PrintableInvoiceModal';
 import {
   CreditCard,
   Receipt,
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react';
 
 export function FinanceOverviewView({ initialTab = 'payments' }: { initialTab?: string }) {
+  const [printInvoice, setPrintInvoice] = useState<any | null>(null);
   const {
     payments,
     invoices,
@@ -247,7 +249,7 @@ export function FinanceOverviewView({ initialTab = 'payments' }: { initialTab?: 
                         variant="outline"
                         size="xs"
                         icon={<Printer className="w-3 h-3" />}
-                        onClick={() => showToast('Printing invoice...', `Dispatched ${inv.invoiceNumber} to printer`)}
+                        onClick={() => setPrintInvoice(inv)}
                       >
                         Print
                       </Button>
@@ -255,7 +257,7 @@ export function FinanceOverviewView({ initialTab = 'payments' }: { initialTab?: 
                         variant="ghost"
                         size="xs"
                         icon={<Download className="w-3 h-3" />}
-                        onClick={() => showToast('Downloading invoice PDF...', `Saved ${inv.invoiceNumber}.pdf`)}
+                        onClick={() => setPrintInvoice(inv)}
                       >
                         PDF
                       </Button>
@@ -416,6 +418,15 @@ export function FinanceOverviewView({ initialTab = 'payments' }: { initialTab?: 
           </div>
         </div>
         )
+      )}
+
+      {/* Printable Invoice & Voucher Modal */}
+      {printInvoice && (
+        <PrintableInvoiceModal
+          isOpen={!!printInvoice}
+          onClose={() => setPrintInvoice(null)}
+          invoice={printInvoice}
+        />
       )}
     </div>
   );

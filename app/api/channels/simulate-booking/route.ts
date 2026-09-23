@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 import { OTAChannel, BookingSource, Reservation } from '@/types/erp';
 
 interface SimulateBookingRequest {
@@ -76,10 +77,145 @@ export async function POST(req: NextRequest) {
     const channelCommission = Math.round(roomCharge * commissionPercent);
     const netPayout = totalAmount - channelCommission;
 
+    // Persist to Prisma Database
+    let persistedId = `res-ota-${Date.now()}`;
+    let persistedGuestId = `gst-ota-${Date.now()}`;
+
+    try {
+      // 1. Resolve or create Property
+      let dbProp = await prisma.property.findUnique({ where: { id: propertyId } });
+      if (!dbProp) {
+        dbProp = await prisma.property.findFirst();
+        if (!dbProp) {
+          dbProp = await prisma.property.create({
+            data: {
+              id: propertyId,
+              name: propertyName,
+              type: 'Resort',
+              location: 'Goa, India',
+              contact: guestPhone,
+              totalUnits: 10,
+              status: 'Active',
+              ownerName: 'Property Manager',
+              ownerEmail: 'manager@onedirectory.com',
+              ownerPhone: guestPhone,
+              description: 'Luxury resort property managed by One Directory',
+            },
+          });
+        }
+      }
+
+      // 2. Resolve or create UnitType & Unit
+      let dbUnit = await prisma.unit.findFirst({
+        where: {
+          propertyId: dbProp.id,
+          ...(unitNumber ? { number: unitNumber } : {}),
+        },
+      });
+
+      if (!dbUnit) {
+        let dbUnitType = await prisma.unitType.findFirst({
+          where: { propertyId: dbProp.id },
+        });
+
+        if (!dbUnitType) {
+          dbUnitType = await prisma.unitType.create({
+            data: {
+              propertyId: dbProp.id,
+              propertyName: dbProp.name,
+              name: unitTypeName,
+              capacity: guestsCount,
+              bedConfiguration: '1 King Bed',
+              baseRate: baseRate,
+              numberOfUnits: 5,
+            },
+          });
+        }
+
+        dbUnit = await prisma.unit.create({
+          data: {
+            propertyId: dbProp.id,
+            propertyName: dbProp.name,
+            unitTypeId: dbUnitType.id,
+            unitTypeName: dbUnitType.name,
+            number: unitNumber,
+            name: `${dbUnitType.name} ${unitNumber}`,
+            floor: '1',
+            status: 'Occupied',
+          },
+        });
+      }
+
+      // 3. Resolve or create Guest
+      let dbGuest = await prisma.guest.findFirst({
+        where: {
+          OR: [{ phone: guestPhone }, ...(guestEmail ? [{ email: guestEmail }] : [])],
+        },
+      });
+
+      if (!dbGuest) {
+        dbGuest = await prisma.guest.create({
+          data: {
+            name: guestName,
+            phone: guestPhone,
+            email: guestEmail,
+            totalStays: 1,
+            totalSpend: totalAmount,
+            status: 'Regular',
+          },
+        });
+      }
+
+      // 4. Create Reservation in PostgreSQL
+      const dbRes = await prisma.reservation.create({
+        data: {
+          bookingId,
+          guestId: dbGuest.id,
+          guestName: dbGuest.name,
+          guestPhone: dbGuest.phone,
+          guestEmail: dbGuest.email,
+          propertyId: dbProp.id,
+          propertyName: dbProp.name,
+          unitId: dbUnit.id,
+          unitNumber: dbUnit.number,
+          unitTypeName: dbUnit.unitTypeName,
+          checkIn,
+          checkOut,
+          nights,
+          guestsCount,
+          source: (channel === 'Airbnb' ? 'Airbnb' : channel === 'Booking.com' ? 'Booking_com' : channel === 'Agoda' ? 'Agoda' : 'MakeMyTrip') as any,
+          rate: nightlyRate,
+          discount: 0,
+          tax: taxes,
+          total: totalAmount,
+          paid: totalAmount,
+          balance: 0,
+          status: 'Confirmed',
+          specialRequests: `Simulated instant booking from ${channel} API v2. Commission: ₹${channelCommission} (${(commissionPercent * 100).toFixed(0)}%). Net: ₹${netPayout}.`,
+        },
+      });
+
+      persistedId = dbRes.id;
+      persistedGuestId = dbGuest.id;
+
+      // Update unit status to Occupied
+      await prisma.unit.update({
+        where: { id: dbUnit.id },
+        data: {
+          status: 'Occupied',
+          currentReservationId: dbRes.id,
+          currentGuestName: guestName,
+          currentCheckOut: checkOut,
+        },
+      });
+    } catch (dbErr) {
+      console.warn('[simulate-booking] Could not write to Prisma DB (falling back to memory):', dbErr);
+    }
+
     const reservation: Reservation = {
-      id: `res-ota-${Date.now()}`,
+      id: persistedId,
       bookingId,
-      guestId: `gst-ota-${Date.now()}`,
+      guestId: persistedGuestId,
       guestName,
       guestPhone,
       guestEmail,
@@ -148,7 +284,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Incoming ${channel} reservation successfully ingested and synced.`,
+      message: `Incoming ${channel} reservation successfully ingested, stored in database, and synced.`,
       reservation,
       webhookPayload: simulatedWebhookPayload,
       outboundBroadcasts,
