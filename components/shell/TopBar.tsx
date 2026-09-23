@@ -117,11 +117,7 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
             onChange={(e) => setSelectedPropertyId(e.target.value)}
             className="bg-transparent text-[12px] font-semibold text-[#3D4E5C] focus:outline-none cursor-pointer uppercase tracking-wide"
           >
-<<<<<<< Updated upstream
-            <option value="all">All Properties (7)</option>
-=======
-            <option value="all">All Properties</option>
->>>>>>> Stashed changes
+            <option value="all">All Properties{properties.length > 0 ? ` (${properties.length})` : ''}</option>
             {properties.map((prop) => (
               <option key={prop.id} value={prop.id}>
                 {prop.name}
@@ -250,11 +246,7 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
                     <div
                       key={notif.id}
                       onClick={() => markNotificationRead(notif.id)}
-<<<<<<< Updated upstream
                       className={`px-4 py-3 hover:bg-[#F8F6F1] transition-colors cursor-pointer ${!notif.read ? 'border-l-2 border-l-[#2E6E8E]' : 'border-l-2 border-l-transparent'
-=======
-                      className={`p-3.5 hover:bg-slate-50 transition-colors cursor-pointer ${!notif.read ? 'bg-teal-50/40' : ''
->>>>>>> Stashed changes
                         }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -339,15 +331,9 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
                         key={role}
                         onClick={() => !isCurrent && handleDemoSwitch(role)}
                         disabled={isCurrent || !!switchingRole}
-<<<<<<< Updated upstream
                         className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs transition-colors ${isCurrent
                             ? 'bg-[#EAF0F8] text-[#2E5E8E] cursor-default border-l-2 border-[#2E6E8E]'
                             : 'text-[#3D4E5C] hover:bg-[#F0EDE6] cursor-pointer disabled:opacity-60 disabled:cursor-wait'
-=======
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors ${isCurrent
-                            ? 'bg-teal-50 border border-teal-200 cursor-default'
-                            : 'hover:bg-slate-50 cursor-pointer disabled:opacity-60 disabled:cursor-wait'
->>>>>>> Stashed changes
                           }`}
                       >
                         <span className="font-medium">{info.label}</span>
