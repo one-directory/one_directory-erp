@@ -101,6 +101,17 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
 
+    const { searchParams } = new URL(req.url);
+    const permanent = searchParams.get('permanent') === 'true';
+
+    if (permanent) {
+      await prisma.user.delete({ where: { id } });
+      return NextResponse.json({
+        success: true,
+        message: 'User deleted permanently.',
+      });
+    }
+
     // Soft-deactivate user rather than hard deletion to preserve audit and log references
     const deactivatedUser = await prisma.user.update({
       where: { id },

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useERP } from '@/context/ERPContext';
 import { OTAChannel, ChannelConnection, ChannelSyncEventType } from '@/types/erp';
 import {
@@ -24,6 +24,14 @@ import {
   Percent,
   XCircle,
   Building2,
+  Link,
+  CloudDownload,
+  UploadCloud,
+  FileText,
+  Loader2,
+  PlusCircle,
+  Trash2,
+  History,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -96,6 +104,7 @@ export function ChannelManagerView() {
     updateChannelRateMarkup,
     updateChannelSettings,
     properties,
+    units,
     selectedPropertyId,
     setSelectedPropertyId,
     reservations,
@@ -106,6 +115,35 @@ export function ChannelManagerView() {
   const [selectedChannelFilter, setSelectedChannelFilter] = useState<string>('all');
   const [copiedFeedId, setCopiedFeedId] = useState<string | null>(null);
   const [inspectPayload, setInspectPayload] = useState<any | null>(null);
+
+  // ── iCal Import State ──────────────────────────────────────────────────────
+  const [importChannel, setImportChannel] = useState<string>('Airbnb');
+  const [importPropertyId, setImportPropertyId] = useState<string>('');
+  const [importUnitId, setImportUnitId] = useState<string>('');
+  const [importUrl, setImportUrl] = useState<string>('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    channel: string;
+    property: string;
+    totalEventsFound: number;
+    createdCount: number;
+    updatedCount: number;
+    skippedCount: number;
+    events: Array<{ uid: string; summary: string; startDate: string; endDate: string; status: string }>;
+    syncedAt: string;
+  } | null>(null);
+  const [importHistory, setImportHistory] = useState<Array<{
+    id: string;
+    channel: string;
+    property: string;
+    url: string;
+    createdCount: number;
+    updatedCount: number;
+    syncedAt: string;
+  }>>([]);
+
+  // Units for selected property
+  const importUnits = units.filter((u) => u.propertyId === importPropertyId);
 
   // Filter connections by selected property if not 'all'
   const visibleConnections = channelConnections;
@@ -513,57 +551,359 @@ export function ChannelManagerView() {
       {/* TAB 3: TWO-WAY iCAL FEEDS */}
       {activeTab === 'ical' && (
         <div className="space-y-6">
+
+          {/* ── SECTION A: EXPORT — Our feeds for OTAs to subscribe ── */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Live RFC 5545 iCalendar (.ics) Calendar Subscriptions</h3>
-              <p className="text-xs text-slate-500">
-                Subscribe to these live calendar export links on your Airbnb, Booking.com, Agoda, or InGoMMT extranet calendars to sync blocked dates automatically.
-              </p>
+            <div className="flex items-start gap-3">
+              <span className="p-2 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 mt-0.5">
+                <UploadCloud className="w-4 h-4" />
+              </span>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Export: Live iCal Feeds for OTA Channels</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Paste these RFC 5545 calendar URLs into your Airbnb, Booking.com, Agoda, or InGoMMT extranet to auto-block dates from confirmed reservations.
+                </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-3">
               {channelConnections.map((conn) => {
                 const info = CHANNEL_LOGOS[conn.channel];
                 const isCopied = copiedFeedId === conn.channel;
+                const exportUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/api/channels/ical?channel=${encodeURIComponent(conn.channel)}`;
                 return (
                   <div
                     key={conn.id}
-                    className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+                    className="p-4 rounded-xl border border-slate-200 bg-gradient-to-r from-slate-50/80 to-white hover:from-teal-50/30 hover:border-teal-200 transition-all flex flex-col md:flex-row md:items-center md:justify-between gap-3"
                   >
-                    <div className="space-y-1">
+                    <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${info.badgeClass}`}>
                           {conn.channel}
                         </span>
                         <span className="font-bold text-xs text-slate-900">{conn.propertyName}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full font-semibold">
+                          LIVE
+                        </span>
                       </div>
-                      <p className="text-xs text-slate-500 font-mono break-all">
-                        {conn.iCalExportUrl}
+                      <p className="text-[11px] text-teal-700 font-mono break-all bg-teal-50/60 px-2 py-1.5 rounded-lg border border-teal-100">
+                        {exportUrl}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        onClick={() => handleCopyFeed(conn.channel, conn.iCalExportUrl)}
-                        icon={isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(exportUrl);
+                          setCopiedFeedId(conn.channel);
+                          showToast('Feed URL Copied', `${conn.channel} iCal feed copied to clipboard`);
+                          setTimeout(() => setCopiedFeedId(null), 3000);
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                          isCopied
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            : 'bg-white border-slate-200 text-slate-700 hover:border-teal-300 hover:text-teal-700'
+                        }`}
                       >
-                        {isCopied ? 'Copied' : 'Copy Feed URL'}
-                      </Button>
+                        {isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {isCopied ? 'Copied!' : 'Copy URL'}
+                      </button>
                       <a
-                        href={conn.iCalExportUrl}
+                        href={`/api/channels/ical?channel=${encodeURIComponent(conn.channel)}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg border border-teal-200"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg border border-teal-200 transition-all"
                       >
                         <Download className="w-3.5 h-3.5" />
-                        <span>Download .ics</span>
+                        <span>Preview .ics</span>
                       </a>
                     </div>
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* ── SECTION B: IMPORT — Pull from external OTA iCal URLs ── */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5">
+            <div className="flex items-start gap-3">
+              <span className="p-2 rounded-xl bg-violet-50 border border-violet-200 text-violet-700 mt-0.5">
+                <CloudDownload className="w-4 h-4" />
+              </span>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Import: Pull External OTA Calendar Feed</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Paste any Airbnb, Booking.com or other OTA iCal export URL to pull blocked dates and auto-create reservations in your PMS.
+                </p>
+              </div>
+            </div>
+
+            {/* Import Form */}
+            <div className="bg-slate-50/70 rounded-xl border border-slate-200 p-4 space-y-4">
+              {/* Row 1: Channel + Property + Unit */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">OTA Channel</label>
+                  <select
+                    value={importChannel}
+                    onChange={(e) => setImportChannel(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 text-slate-800"
+                  >
+                    <option value="Airbnb">Airbnb</option>
+                    <option value="Booking.com">Booking.com</option>
+                    <option value="Agoda">Agoda</option>
+                    <option value="MakeMyTrip">MakeMyTrip</option>
+                    <option value="Expedia">Expedia</option>
+                    <option value="Other">Other / Direct</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Property</label>
+                  <select
+                    value={importPropertyId}
+                    onChange={(e) => { setImportPropertyId(e.target.value); setImportUnitId(''); }}
+                    className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 text-slate-800"
+                  >
+                    <option value="">— Select Property —</option>
+                    {properties.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Unit (optional)</label>
+                  <select
+                    value={importUnitId}
+                    onChange={(e) => setImportUnitId(e.target.value)}
+                    disabled={!importPropertyId || importUnits.length === 0}
+                    className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">— All Units / Auto-assign —</option>
+                    {importUnits.map((u: any) => (
+                      <option key={u.id} value={u.id}>{u.number || u.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: iCal URL Input */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  External iCal URL
+                  <span className="ml-2 text-[10px] font-normal text-slate-400">(From Airbnb, Booking.com, Google Calendar, etc.)</span>
+                </label>
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <input
+                      type="url"
+                      value={importUrl}
+                      onChange={(e) => setImportUrl(e.target.value)}
+                      placeholder="https://www.airbnb.com/calendar/ical/1234567.ics?s=abc..."
+                      className="w-full pl-8 pr-3 py-2 text-xs font-mono bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 text-slate-800 placeholder:text-slate-300"
+                    />
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={isImporting || !importUrl.trim() || !importPropertyId}
+                    onClick={async () => {
+                      if (!importUrl.trim() || !importPropertyId) {
+                        showToast('Missing Fields', 'Please select a property and enter an iCal URL.', 'warning');
+                        return;
+                      }
+                      setIsImporting(true);
+                      setImportResult(null);
+                      try {
+                        const res = await fetch('/api/channels/import', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            propertyId: importPropertyId,
+                            unitId: importUnitId || undefined,
+                            channel: importChannel,
+                            iCalUrl: importUrl.trim(),
+                          }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok || !data.success) {
+                          showToast('Sync Failed', data.error || 'Failed to fetch external calendar feed.', 'error');
+                          return;
+                        }
+                        const result = {
+                          channel: importChannel,
+                          property: data.property || importPropertyId,
+                          totalEventsFound: data.totalEventsFound || 0,
+                          createdCount: data.createdCount || 0,
+                          updatedCount: data.updatedCount || 0,
+                          skippedCount: data.skippedCount || 0,
+                          events: data.events || [],
+                          syncedAt: new Date().toLocaleTimeString(),
+                        };
+                        setImportResult(result);
+                        setImportHistory((prev) => [
+                          {
+                            id: `hist-${Date.now()}`,
+                            channel: importChannel,
+                            property: result.property,
+                            url: importUrl.trim(),
+                            createdCount: result.createdCount,
+                            updatedCount: result.updatedCount,
+                            syncedAt: result.syncedAt,
+                          },
+                          ...prev.slice(0, 4),
+                        ]);
+                        showToast(
+                          'iCal Sync Complete',
+                          `${result.totalEventsFound} events found — ${result.createdCount} new reservations created.`,
+                          'success'
+                        );
+                      } catch (err: any) {
+                        showToast('Network Error', err.message || 'Could not reach external calendar URL.', 'error');
+                      } finally {
+                        setIsImporting(false);
+                      }
+                    }}
+                    icon={isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudDownload className="w-4 h-4" />}
+                  >
+                    {isImporting ? 'Fetching...' : 'Fetch & Sync'}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1.5">
+                  We'll fetch the .ics file server-side (10s timeout), parse RFC 5545 events, and create/update reservations in your PMS. Cancelled events are handled automatically.
+                </p>
+              </div>
+            </div>
+
+            {/* Import Result Card */}
+            {importResult && (
+              <div className="rounded-xl border-2 border-violet-200 bg-gradient-to-br from-violet-50/60 to-white p-5 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    <h4 className="text-sm font-bold text-slate-900">Sync Complete — {importResult.channel}</h4>
+                    <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-full font-semibold">
+                      {importResult.property}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> {importResult.syncedAt}
+                  </span>
+                </div>
+
+                {/* Stats Row */}
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { label: 'Events Found', value: importResult.totalEventsFound, color: 'text-violet-700', bg: 'bg-violet-50 border-violet-200' },
+                    { label: 'New Reservations', value: importResult.createdCount, color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
+                    { label: 'Updated', value: importResult.updatedCount, color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200' },
+                    { label: 'Skipped', value: importResult.skippedCount, color: 'text-slate-600', bg: 'bg-slate-50 border-slate-200' },
+                  ].map((s) => (
+                    <div key={s.label} className={`text-center p-3 rounded-xl border ${s.bg}`}>
+                      <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
+                      <p className="text-[10px] font-semibold text-slate-500 mt-0.5">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Events Preview Table */}
+                {importResult.events.length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5" /> Parsed Calendar Events ({importResult.events.length})
+                    </p>
+                    <div className="overflow-x-auto rounded-lg border border-violet-100">
+                      <table className="w-full text-left text-xs text-slate-600 divide-y divide-slate-100">
+                        <thead className="bg-violet-50/60 text-slate-500 uppercase text-[10px] font-bold">
+                          <tr>
+                            <th className="py-2 px-3">Summary / Guest</th>
+                            <th className="py-2 px-3">Check-In</th>
+                            <th className="py-2 px-3">Check-Out</th>
+                            <th className="py-2 px-3">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {importResult.events.slice(0, 8).map((evt, idx) => (
+                            <tr key={idx} className="hover:bg-violet-50/30 transition-colors">
+                              <td className="py-2 px-3 font-medium text-slate-800 max-w-xs truncate">
+                                {evt.summary || '—'}
+                              </td>
+                              <td className="py-2 px-3 font-mono text-teal-700 font-semibold">{evt.startDate}</td>
+                              <td className="py-2 px-3 font-mono text-slate-600">{evt.endDate}</td>
+                              <td className="py-2 px-3">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  evt.status === 'CANCELLED'
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                }`}>
+                                  {evt.status || 'CONFIRMED'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                          {importResult.events.length > 8 && (
+                            <tr>
+                              <td colSpan={4} className="py-2 px-3 text-center text-xs text-slate-400 italic">
+                                +{importResult.events.length - 8} more events (see Reservations module)
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {importResult.totalEventsFound === 0 && (
+                  <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    No calendar events were found in the provided iCal feed. The feed may be empty or use a non-standard format.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Recent Import History */}
+            {importHistory.length > 0 && (
+              <div>
+                <p className="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                  <History className="w-3.5 h-3.5 text-slate-400" /> Recent Imports (This Session)
+                </p>
+                <div className="space-y-2">
+                  {importHistory.map((h) => {
+                    const info = CHANNEL_LOGOS[h.channel as OTAChannel];
+                    return (
+                      <div key={h.id} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${
+                          info?.badgeClass || 'bg-slate-50 text-slate-700 border-slate-200'
+                        }`}>
+                          {h.channel}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-800">{h.property}</p>
+                          <p className="text-[10px] text-slate-400 font-mono truncate">{h.url}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-bold text-emerald-700">+{h.createdCount} new</p>
+                          <p className="text-[10px] text-slate-400">{h.syncedAt}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Help callout */}
+            <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800">
+              <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold mb-0.5">How Two-Way iCal Sync Works</p>
+                <p className="text-[11px] text-blue-700 leading-relaxed">
+                  <strong>Export (↑):</strong> OTAs subscribe to your live .ics feed URLs above — they auto-pull every 15–60 min to block your confirmed reservations on their calendar.
+                  {' '}<strong>Import (↓):</strong> Paste the OTA's iCal export URL here — we fetch it server-side, parse RFC 5545 VEVENT records, and auto-create reservations in your PMS without double-booking.
+                </p>
+              </div>
             </div>
           </div>
         </div>

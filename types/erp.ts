@@ -526,3 +526,24 @@ export interface ChannelRateRule {
   }>;
 }
 
+export type StaffRole =
+  | 'ADMIN'
+  | 'PROPERTY_MANAGER'
+  | 'FRONT_DESK'
+  | 'OPERATIONS'
+  | 'ACCOUNTANT';
+
+export interface ERPUser {
+  id: string;
+  name: string;
+  email: string;
+  role: StaffRole;
+  department?: string | null;
+  phone?: string | null;
+  avatarUrl?: string | null;
+  isActive: boolean;
+  propertyIds: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+

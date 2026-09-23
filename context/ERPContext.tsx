@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Property,
   UnitType,
@@ -27,6 +27,8 @@ import {
   ChannelConnection,
   ChannelSyncEvent,
   ChannelRateRule,
+  ERPUser,
+  StaffRole,
 } from '@/types/erp';
 import {
   INITIAL_CHANNEL_CONNECTIONS,
@@ -128,6 +130,25 @@ interface ERPContextType {
   setIsCommandPaletteOpen: (open: boolean) => void;
   showToast: (title: string, message?: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
   removeToast: (id: string) => void;
+  // Users & Staff Management
+  users: ERPUser[];
+  isLoadingUsers: boolean;
+  fetchUsers: () => Promise<void>;
+  createUser: (userData: {
+    name: string;
+    email: string;
+    password: string;
+    role: StaffRole;
+    department?: string;
+    phone?: string;
+    propertyIds?: string[];
+  }) => Promise<boolean>;
+  updateUser: (
+    id: string,
+    updates: Partial<ERPUser> & { password?: string }
+  ) => Promise<boolean>;
+  deleteUser: (id: string, permanent?: boolean) => Promise<boolean>;
+  toggleUserStatus: (id: string, currentActive: boolean) => Promise<boolean>;
 
   // Domain Actions
   completeFollowUp: (
@@ -203,6 +224,8 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
   const [activeDrawer, setActiveDrawer] = useState<{ type: DrawerType; id: string } | null>(null);
   const [activeModal, setActiveModal] = useState<{ type: GlobalModalType; data?: any } | null>(null);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [users, setUsers] = useState<ERPUser[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Keyboard shortcut listener for Ctrl+K / Cmd+K
@@ -542,6 +565,15 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
               paymentMode: e.paymentMode,
             }));
             setExpenses(dbExp);
+          }
+        }
+
+        // ── 11. Users ───────────────────────────────────────────────────────
+        const resUsers = await fetch('/api/users');
+        if (resUsers.ok) {
+          const uJson = await resUsers.json();
+          if (uJson.success && Array.isArray(uJson.data) && isMounted) {
+            setUsers(uJson.data);
           }
         }
       } catch (e) {
@@ -2345,6 +2377,108 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const fetchUsers = useCallback(async () => {
+    setIsLoadingUsers(true);
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setUsers(json.data);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, []);
+
+  const createUser = async (userData: {
+    name: string;
+    email: string;
+    password: string;
+    role: StaffRole;
+    department?: string;
+    phone?: string;
+    propertyIds?: string[];
+  }): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast('Failed to create user', data.error || 'Server error', 'error');
+        return false;
+      }
+      setUsers((prev) => [data.data, ...prev]);
+      showToast('Staff Member Created', `${data.data.name} added successfully as ${data.data.role}.`, 'success');
+      return true;
+    } catch (err: any) {
+      showToast('Error', err.message || 'Failed to create user', 'error');
+      return false;
+    }
+  };
+
+  const updateUser = async (
+    id: string,
+    updates: Partial<ERPUser> & { password?: string }
+  ): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast('Update Failed', data.error || 'Server error', 'error');
+        return false;
+      }
+      setUsers((prev) =>
+        prev.map((u) => (u.id === id ? { ...u, ...data.data } : u))
+      );
+      showToast('User Updated', `${data.data.name} profile updated successfully.`, 'success');
+      return true;
+    } catch (err: any) {
+      showToast('Error', err.message || 'Failed to update user', 'error');
+      return false;
+    }
+  };
+
+  const deleteUser = async (id: string, permanent: boolean = false): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/users/${id}${permanent ? '?permanent=true' : ''}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast('Delete Failed', data.error || 'Server error', 'error');
+        return false;
+      }
+      if (permanent) {
+        setUsers((prev) => prev.filter((u) => u.id !== id));
+        showToast('User Deleted', 'Staff member permanently removed.', 'info');
+      } else {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === id ? { ...u, isActive: false } : u))
+        );
+        showToast('User Deactivated', 'Staff account has been deactivated.', 'info');
+      }
+      return true;
+    } catch (err: any) {
+      showToast('Error', err.message || 'Failed to remove user', 'error');
+      return false;
+    }
+  };
+
+  const toggleUserStatus = async (id: string, currentActive: boolean): Promise<boolean> => {
+    return updateUser(id, { isActive: !currentActive });
+  };
+
   return (
     <ERPContext.Provider
       value={{
@@ -2418,6 +2552,13 @@ export function ERPProvider({ children }: { children: React.ReactNode }) {
         removeProperty,
         addUnit,
         removeUnit,
+        users,
+        isLoadingUsers,
+        fetchUsers,
+        createUser,
+        updateUser,
+        deleteUser,
+        toggleUserStatus,
       }}
     >
       {children}

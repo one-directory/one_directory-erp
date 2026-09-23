@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { Tabs } from '@/components/ui/Tabs';
 import { Settings, Users, Building2, Bell, Shield, Sliders, Check } from 'lucide-react';
 
+import { StaffManagementTab } from './StaffManagementTab';
+
 export function SettingsView() {
   const { showToast } = useERP();
   const [activeTab, setActiveTab] = useState('org');
@@ -85,40 +87,7 @@ export function SettingsView() {
       )}
 
       {/* Users & Roles */}
-      {activeTab === 'users' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
-                <th className="py-3 px-4">Staff Member</th>
-                <th className="py-3 px-4">Assigned Role</th>
-                <th className="py-3 px-4">Primary Property Access</th>
-                <th className="py-3 px-4">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {[
-                { name: 'Admin User', role: 'Operations Head / Superadmin', prop: 'All Properties', status: 'Active' },
-                { name: 'Arun V', role: 'Senior Sales Lead', prop: 'Vistara & Silver Sands', status: 'Active' },
-                { name: 'Neha Sharma', role: 'VIP Relations & CRM', prop: 'Ivory by Shore & Delta Inn', status: 'Active' },
-                { name: 'Praveen Nair', role: 'Operations Supervisor', prop: 'Gayatri Nest & Sattva', status: 'Active' },
-                { name: 'Mary Fernandes', role: 'Executive Housekeeper', prop: 'Silver Sands Beach Resort', status: 'Active' },
-              ].map((u, i) => (
-                <tr key={i} className="hover:bg-slate-50">
-                  <td className="py-3.5 px-4 font-bold text-slate-900">{u.name}</td>
-                  <td className="py-3.5 px-4 font-semibold text-teal-800">{u.role}</td>
-                  <td className="py-3.5 px-4 text-slate-600">{u.prop}</td>
-                  <td className="py-3.5 px-4">
-                    <Badge variant="success" size="xs">
-                      {u.status}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {activeTab === 'users' && <StaffManagementTab />}
 
       {/* Booking Policies */}
       {activeTab === 'booking' && (
