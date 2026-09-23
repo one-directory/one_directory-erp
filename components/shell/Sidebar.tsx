@@ -97,16 +97,28 @@ export function Sidebar({
 
   // Top-level nav item — icon + label, active has left rule + lighter bg
   const navItemClass = (isActive: boolean) =>
+<<<<<<< Updated upstream
     `flex items-center justify-between w-full px-3 py-2 text-[12px] font-medium transition-colors duration-100 cursor-pointer select-none ${isActive
       ? 'bg-[#233040] text-[#E8EFF4] border-l-2 border-[#2E6E8E] pl-[10px]'
       : 'text-[#8AA0B0] hover:text-[#C8D8E4] hover:bg-[#1E303D] border-l-2 border-transparent pl-[10px]'
+=======
+    `flex items-center justify-between w-full px-3 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer select-none ${isActive
+      ? 'bg-teal-700/80 text-white font-semibold shadow-xs'
+      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+>>>>>>> Stashed changes
     }`;
 
   // Sub-nav items — slightly smaller, more indent
   const subNavItemClass = (isActive: boolean) =>
+<<<<<<< Updated upstream
     `flex items-center justify-between w-full pl-8 pr-3 py-[5px] text-[11px] font-medium transition-colors duration-100 cursor-pointer select-none ${isActive
       ? 'text-[#D4E4EF] bg-[#1E303D]'
       : 'text-[#617A8A] hover:text-[#A0BCC8] hover:bg-[#1A2C39]'
+=======
+    `flex items-center justify-between w-full pl-9 pr-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer select-none ${isActive
+      ? 'text-teal-300 font-semibold bg-teal-950/40'
+      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+>>>>>>> Stashed changes
     }`;
 
   // Section header — letterpress labels, all-caps, tracked
@@ -162,6 +174,7 @@ export function Sidebar({
 
         {/* ── RESERVATIONS ── */}
         {(allowed('calendar') || allowed('reservations')) && (
+<<<<<<< Updated upstream
           <div className="pt-3">
             <button onClick={() => toggleGroup('reservations')} className={groupHeaderClass}>
               <span>Reservations</span>
@@ -180,6 +193,40 @@ export function Sidebar({
                 {allowed('reservations') && (
                   <button onClick={() => handleNav('reservations')} className={subNavItemClass(currentModule === 'reservations')}>
                     <span>All Bookings</span>
+=======
+          <div>
+            <button
+              onClick={() => toggleGroup('reservations')}
+              className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Calendar className="w-3.5 h-3.5 text-teal-400" />
+                <span>Reservations</span>
+              </div>
+              {expandedGroups.reservations ? (
+                <ChevronDown className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5" />
+              )}
+            </button>
+
+            {expandedGroups.reservations && (
+              <div className="mt-0.5 space-y-0.5">
+                {allowed('calendar') && (
+                  <button
+                    onClick={() => handleNav('calendar')}
+                    className={subNavItemClass(currentModule === 'calendar')}
+                  >
+                    <span>Calendar Matrix</span>
+                    <span className="text-[10px] text-teal-300 font-mono">Gantt</span>
+                  </button>
+                )}
+                {allowed('reservations') && (
+                  <button
+                    onClick={() => handleNav('reservations')}
+                    className={subNavItemClass(currentModule === 'reservations')}
+                  >
+                    <span>All Bookings</span>
                   </button>
                 )}
               </div>
@@ -187,6 +234,85 @@ export function Sidebar({
           </div>
         )}
 
+        {/* Guests */}
+        {allowed('guests') && (
+          <button
+            onClick={() => handleNav('guests')}
+            className={navItemClass(currentModule === 'guests')}
+          >
+            <div className="flex items-center gap-2.5">
+              <Users className="w-4 h-4 shrink-0 text-teal-400" />
+              <span>Guest Directory</span>
+            </div>
+          </button>
+        )}
+
+        {/* CRM Group */}
+        {(allowed('follow-ups') || allowed('leads') || allowed('quotations') || allowed('communications')) && (
+          <div>
+            <button
+              onClick={() => toggleGroup('crm')}
+              className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <PhoneCall className="w-3.5 h-3.5 text-teal-400" />
+                <span>CRM & Follow-ups</span>
+              </div>
+              {expandedGroups.crm ? (
+                <ChevronDown className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5" />
+              )}
+            </button>
+
+            {expandedGroups.crm && (
+              <div className="mt-0.5 space-y-0.5">
+                {allowed('follow-ups') && (
+                  <button
+                    onClick={() => handleNav('follow-ups')}
+                    className={subNavItemClass(currentModule === 'follow-ups')}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>Follow-up Center</span>
+                    </div>
+                    {overdueFollowUpsCount > 0 && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-rose-500 text-white">
+                        {overdueFollowUpsCount} overdue
+                      </span>
+                    )}
+                  </button>
+                )}
+                {allowed('leads') && (
+                  <button
+                    onClick={() => handleNav('leads')}
+                    className={subNavItemClass(currentModule === 'leads')}
+                  >
+                    <span>Leads Pipeline</span>
+                  </button>
+                )}
+                {allowed('quotations') && (
+                  <button
+                    onClick={() => handleNav('quotations')}
+                    className={subNavItemClass(currentModule === 'quotations')}
+                  >
+                    <span>Quotations</span>
+                  </button>
+                )}
+                {allowed('communications') && (
+                  <button
+                    onClick={() => handleNav('communications')}
+                    className={subNavItemClass(currentModule === 'communications')}
+                  >
+                    <span>Communications Log</span>
+>>>>>>> Stashed changes
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+<<<<<<< Updated upstream
         {/* ── CRM ── */}
         {(allowed('follow-ups') || allowed('quotations') || allowed('communications')) && (
           <div className="pt-3">
@@ -212,6 +338,50 @@ export function Sidebar({
                 {allowed('communications') && (
                   <button onClick={() => handleNav('communications')} className={subNavItemClass(currentModule === 'communications')}>
                     <span>Communications Log</span>
+=======
+        {/* Properties Group */}
+        {(allowed('properties') || allowed('unit-types') || allowed('units')) && (
+          <div>
+            <button
+              onClick={() => toggleGroup('properties')}
+              className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Building2 className="w-3.5 h-3.5 text-teal-400" />
+                <span>Properties</span>
+              </div>
+              {expandedGroups.properties ? (
+                <ChevronDown className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5" />
+              )}
+            </button>
+
+            {expandedGroups.properties && (
+              <div className="mt-0.5 space-y-0.5">
+                {allowed('properties') && (
+                  <button
+                    onClick={() => handleNav('properties')}
+                    className={subNavItemClass(currentModule === 'properties')}
+                  >
+                    <span>Properties</span>
+                  </button>
+                )}
+                {allowed('unit-types') && (
+                  <button
+                    onClick={() => handleNav('unit-types')}
+                    className={subNavItemClass(currentModule === 'unit-types')}
+                  >
+                    <span>Unit Types</span>
+                  </button>
+                )}
+                {allowed('units') && (
+                  <button
+                    onClick={() => handleNav('units')}
+                    className={subNavItemClass(currentModule === 'units')}
+                  >
+                    <span>Unit Inventory</span>
+>>>>>>> Stashed changes
                   </button>
                 )}
               </div>
@@ -219,6 +389,7 @@ export function Sidebar({
           </div>
         )}
 
+<<<<<<< Updated upstream
         {/* ── PROPERTIES ── */}
         {(allowed('properties') || allowed('units')) && (
           <div className="pt-3">
@@ -266,6 +437,60 @@ export function Sidebar({
                   <button onClick={() => handleNav('maintenance')} className={subNavItemClass(currentModule === 'maintenance')}>
                     <span>Maintenance</span>
                     {countBadge(openMtCount, 'alert')}
+=======
+        {/* Operations Group */}
+        {(allowed('housekeeping') || allowed('maintenance') || allowed('staff-tasks')) && (
+          <div>
+            <button
+              onClick={() => toggleGroup('operations')}
+              className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                <span>Operations</span>
+              </div>
+              {expandedGroups.operations ? (
+                <ChevronDown className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5" />
+              )}
+            </button>
+
+            {expandedGroups.operations && (
+              <div className="mt-0.5 space-y-0.5">
+                {allowed('housekeeping') && (
+                  <button
+                    onClick={() => handleNav('housekeeping')}
+                    className={subNavItemClass(currentModule === 'housekeeping')}
+                  >
+                    <span>Housekeeping</span>
+                    {pendingHkCount > 0 && (
+                      <span className="text-[10px] font-semibold px-1.5 rounded-full bg-amber-500/20 text-amber-300">
+                        {pendingHkCount}
+                      </span>
+                    )}
+                  </button>
+                )}
+                {allowed('maintenance') && (
+                  <button
+                    onClick={() => handleNav('maintenance')}
+                    className={subNavItemClass(currentModule === 'maintenance')}
+                  >
+                    <span>Maintenance</span>
+                    {openMtCount > 0 && (
+                      <span className="text-[10px] font-semibold px-1.5 rounded-full bg-rose-500/20 text-rose-300">
+                        {openMtCount}
+                      </span>
+                    )}
+                  </button>
+                )}
+                {allowed('staff-tasks') && (
+                  <button
+                    onClick={() => handleNav('staff-tasks')}
+                    className={subNavItemClass(currentModule === 'staff-tasks')}
+                  >
+                    <span>Staff Tasks</span>
+>>>>>>> Stashed changes
                   </button>
                 )}
               </div>
@@ -273,6 +498,7 @@ export function Sidebar({
           </div>
         )}
 
+<<<<<<< Updated upstream
         {/* ── FINANCE ── */}
         {(allowed('payments') || allowed('invoices') || allowed('expenses') || allowed('owner-settlements')) && (
           <div className="pt-3">
@@ -286,21 +512,69 @@ export function Sidebar({
               <div className="mt-0.5">
                 {allowed('payments') && (
                   <button onClick={() => handleNav('payments')} className={subNavItemClass(currentModule === 'payments')}>
+=======
+        {/* Finance Group */}
+        {(allowed('payments') || allowed('invoices') || allowed('expenses') || allowed('owner-settlements')) && (
+          <div>
+            <button
+              onClick={() => toggleGroup('finance')}
+              className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Landmark className="w-3.5 h-3.5 text-teal-400" />
+                <span>Finance</span>
+              </div>
+              {expandedGroups.finance ? (
+                <ChevronDown className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5" />
+              )}
+            </button>
+
+            {expandedGroups.finance && (
+              <div className="mt-0.5 space-y-0.5">
+                {allowed('payments') && (
+                  <button
+                    onClick={() => handleNav('payments')}
+                    className={subNavItemClass(currentModule === 'payments')}
+                  >
+>>>>>>> Stashed changes
                     <span>Payments</span>
                   </button>
                 )}
                 {allowed('invoices') && (
+<<<<<<< Updated upstream
                   <button onClick={() => handleNav('invoices')} className={subNavItemClass(currentModule === 'invoices')}>
+=======
+                  <button
+                    onClick={() => handleNav('invoices')}
+                    className={subNavItemClass(currentModule === 'invoices')}
+                  >
+>>>>>>> Stashed changes
                     <span>Invoices</span>
                   </button>
                 )}
                 {allowed('expenses') && (
+<<<<<<< Updated upstream
                   <button onClick={() => handleNav('expenses')} className={subNavItemClass(currentModule === 'expenses')}>
+=======
+                  <button
+                    onClick={() => handleNav('expenses')}
+                    className={subNavItemClass(currentModule === 'expenses')}
+                  >
+>>>>>>> Stashed changes
                     <span>Expenses</span>
                   </button>
                 )}
                 {allowed('owner-settlements') && (
+<<<<<<< Updated upstream
                   <button onClick={() => handleNav('owner-settlements')} className={subNavItemClass(currentModule === 'owner-settlements')}>
+=======
+                  <button
+                    onClick={() => handleNav('owner-settlements')}
+                    className={subNavItemClass(currentModule === 'owner-settlements')}
+                  >
+>>>>>>> Stashed changes
                     <span>Owner Settlements</span>
                   </button>
                 )}
@@ -309,6 +583,7 @@ export function Sidebar({
           </div>
         )}
 
+<<<<<<< Updated upstream
         {/* Hairline separator */}
         <div className="mx-3 my-3 border-t border-[#28394A]" />
 
@@ -320,34 +595,91 @@ export function Sidebar({
               <span>Channel Manager</span>
             </div>
             <span className="text-[8px] font-bold tracking-widest uppercase text-[#4A6070]">OTA</span>
+=======
+        {/* Channel Manager (OTAs) */}
+        {allowed('channels') && (
+          <button
+            onClick={() => handleNav('channels')}
+            className={navItemClass(currentModule === 'channels')}
+          >
+            <div className="flex items-center gap-2.5">
+              <Globe2 className="w-4 h-4 shrink-0 text-violet-400" />
+              <span>Channel Manager</span>
+            </div>
+            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 tracking-wide">
+              OTA
+            </span>
+>>>>>>> Stashed changes
           </button>
         )}
 
         {/* Reviews */}
         {allowed('reviews') && (
+<<<<<<< Updated upstream
           <button onClick={() => handleNav('reviews')} className={navItemClass(currentModule === 'reviews')}>
             <div className="flex items-center gap-2.5">
               <Star className="w-3.5 h-3.5 shrink-0 opacity-70" />
               <span>Reviews &amp; Reputation</span>
+=======
+          <button
+            onClick={() => handleNav('reviews')}
+            className={navItemClass(currentModule === 'reviews')}
+          >
+            <div className="flex items-center gap-2.5">
+              <Star className="w-4 h-4 shrink-0 text-amber-400" />
+              <span>Reviews & Reputation</span>
+>>>>>>> Stashed changes
             </div>
           </button>
         )}
 
         {/* Reports */}
         {allowed('reports') && (
+<<<<<<< Updated upstream
           <button onClick={() => handleNav('reports')} className={navItemClass(currentModule === 'reports')}>
             <div className="flex items-center gap-2.5">
               <BarChart3 className="w-3.5 h-3.5 shrink-0 opacity-70" />
               <span>Reports &amp; Analytics</span>
+=======
+          <button
+            onClick={() => handleNav('reports')}
+            className={navItemClass(currentModule === 'reports')}
+          >
+            <div className="flex items-center gap-2.5">
+              <BarChart3 className="w-4 h-4 shrink-0 text-teal-400" />
+              <span>Reports & Analytics</span>
+            </div>
+          </button>
+        )}
+
+        {/* Audit Log */}
+        {allowed('audit') && (
+          <button
+            onClick={() => handleNav('audit')}
+            className={navItemClass(currentModule === 'audit')}
+          >
+            <div className="flex items-center gap-2.5">
+              <ShieldCheck className="w-4 h-4 shrink-0 text-teal-400" />
+              <span>Audit Trail</span>
+>>>>>>> Stashed changes
             </div>
           </button>
         )}
 
         {/* Settings */}
         {allowed('settings') && (
+<<<<<<< Updated upstream
           <button onClick={() => handleNav('settings')} className={navItemClass(currentModule === 'settings')}>
             <div className="flex items-center gap-2.5">
               <Settings className="w-3.5 h-3.5 shrink-0 opacity-70" />
+=======
+          <button
+            onClick={() => handleNav('settings')}
+            className={navItemClass(currentModule === 'settings')}
+          >
+            <div className="flex items-center gap-2.5">
+              <Settings className="w-4 h-4 shrink-0 text-teal-400" />
+>>>>>>> Stashed changes
               <span>Settings</span>
             </div>
           </button>
