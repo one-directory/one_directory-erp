@@ -147,24 +147,24 @@ export function DashboardView() {
     : '—';
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs">
+    <div className="space-y-6 animate-fade-in">
+      {/* Header Masthead */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 border border-[#E2DDD6] shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Good morning, Admin</h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#1E2A32] tracking-tight">Good morning, Admin</h1>
             <Badge variant="success" size="xs">
               Live Ops
             </Badge>
           </div>
-          <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+          <p className="text-xs text-[#6B7A87] mt-1 flex items-center gap-2">
             <span>
-              Date: <strong>{todayLabel}</strong>
+              Date: <strong className="text-[#1E2A32] font-semibold">{todayLabel}</strong>
             </span>
             <span>•</span>
             <span>
               Scope:{' '}
-              <strong className="text-teal-700">
+              <strong className="text-[#2E6E8E] font-semibold">
                 {selectedProperty
                   ? selectedProperty.name
                   : `All Properties${kpis ? ` (${kpis.totalProperties} Active)` : ''}`}
@@ -173,17 +173,17 @@ export function DashboardView() {
           </p>
         </div>
 
-        {/* Date Filter Tabs */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs">
-          {['Today', 'Yesterday', 'Last 7 Days', 'This Month'].map((tab) => (
+        {/* Date Filter Tabs - Segmented Control */}
+        <div className="flex items-center border border-[#D8D2C8] rounded-[2px] overflow-hidden text-xs">
+          {['Today', 'Yesterday', 'Last 7 Days', 'This Month'].map((tab, idx) => (
             <button
               key={tab}
               onClick={() => setDateRange(tab)}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
-                dateRange === tab
-                  ? 'bg-white text-teal-800 shadow-2xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`px-3 py-1.5 font-medium transition-colors cursor-pointer ${idx > 0 ? 'border-l border-[#D8D2C8]' : ''
+                } ${dateRange === tab
+                  ? 'bg-[#1C2B35] text-white font-semibold'
+                  : 'bg-white text-[#6B7A87] hover:bg-[#F0EDE6] hover:text-[#1E2A32]'
+                }`}
             >
               {tab}
             </button>
@@ -215,7 +215,7 @@ export function DashboardView() {
           }
           change={kpis ? `${kpis.vacantUnits} units vacant` : ''}
           trend="neutral"
-          icon={<Building2 className="w-5 h-5 text-teal-700" />}
+          icon={<Building2 className="w-4 h-4 text-[#2E6E8E]" />}
         />
         <StatCard
           title="Average Occupancy"
@@ -227,7 +227,7 @@ export function DashboardView() {
           }
           change={kpis ? `${kpis.vacantUnits} vacant` : ''}
           trend={kpis ? (kpis.occupancyRate >= 70 ? 'up' : 'down') : 'neutral'}
-          icon={<TrendingUp className="w-5 h-5 text-teal-700" />}
+          icon={<TrendingUp className="w-4 h-4 text-[#2E6E8E]" />}
         />
         <StatCard
           title={`Revenue — ${currentMonthLabel}`}
@@ -235,7 +235,7 @@ export function DashboardView() {
           subtitle={kpis ? `${kpis.pendingInvoices} invoices pending` : 'Real-time from payments'}
           change=""
           trend="up"
-          icon={<CreditCard className="w-5 h-5 text-teal-700" />}
+          icon={<CreditCard className="w-4 h-4 text-[#2E6E8E]" />}
         />
         <StatCard
           title="Active Bookings"
@@ -247,56 +247,56 @@ export function DashboardView() {
           }
           change={kpis ? `${kpis.pendingLeads} leads pending` : ''}
           trend="up"
-          icon={<Calendar className="w-5 h-5 text-teal-700" />}
+          icon={<Calendar className="w-4 h-4 text-[#2E6E8E]" />}
         />
       </div>
 
       {/* TODAY'S OPERATIONAL METRICS BAR */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-4 sm:p-5 shadow-md">
-        <div className="flex items-center justify-between mb-3 border-b border-slate-700/60 pb-2">
+      <div className="bg-[#1C2B35] text-white border border-[#28394A] p-4 sm:p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center justify-between mb-3 border-b border-[#28394A] pb-2.5">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#8AA0B0]">
               Today's Live Operations • {todayShort}
             </h3>
           </div>
-          <span className="text-xs text-teal-300 font-mono flex items-center gap-1">
+          <span className="text-xs text-[#8AA0B0] font-mono flex items-center gap-1">
             {kpisLoading && <Loader2 className="w-3 h-3 animate-spin" />}
             Real-time sync
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center divide-x-0 sm:divide-x divide-slate-700/60">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center divide-x-0 sm:divide-x divide-[#28394A]">
           <div className="p-2">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Arrivals</p>
+            <p className="text-[10px] text-[#8AA0B0] font-semibold uppercase tracking-wider">Arrivals</p>
             <p className="text-2xl font-bold text-emerald-400 mt-0.5 font-tabular">
               {kpis ? kpis.todayCheckIns : todayArrivals.length}
             </p>
-            <span className="text-[10px] text-slate-400">Expected check-ins</span>
+            <span className="text-[10px] text-[#8AA0B0]">Expected check-ins</span>
           </div>
           <div className="p-2">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Departures</p>
+            <p className="text-[10px] text-[#8AA0B0] font-semibold uppercase tracking-wider">Departures</p>
             <p className="text-2xl font-bold text-sky-400 mt-0.5 font-tabular">
               {kpis ? kpis.todayCheckOuts : todayDepartures.length}
             </p>
-            <span className="text-[10px] text-slate-400">Checkouts today</span>
+            <span className="text-[10px] text-[#8AA0B0]">Checkouts today</span>
           </div>
           <div className="p-2">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">In-House Guests</p>
+            <p className="text-[10px] text-[#8AA0B0] font-semibold uppercase tracking-wider">In-House Guests</p>
             <p className="text-2xl font-bold text-white mt-0.5 font-tabular">
               {kpis ? kpis.occupiedUnits : '—'}
             </p>
-            <span className="text-[10px] text-slate-400">Occupied units</span>
+            <span className="text-[10px] text-[#8AA0B0]">Occupied units</span>
           </div>
           <div className="p-2">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Follow-ups Today</p>
+            <p className="text-[10px] text-[#8AA0B0] font-semibold uppercase tracking-wider">Follow-ups Today</p>
             <p className="text-2xl font-bold text-amber-400 mt-0.5 font-tabular">
               {followUpsDueToday.length}
             </p>
-            <span className="text-[10px] text-slate-400">Due / overdue</span>
+            <span className="text-[10px] text-[#8AA0B0]">Due / overdue</span>
           </div>
           <div className="p-2">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Open Tasks</p>
+            <p className="text-[10px] text-[#8AA0B0] font-semibold uppercase tracking-wider">Open Tasks</p>
             <p className="text-2xl font-bold text-rose-400 mt-0.5 font-tabular">
               {kpis ? kpis.openTasks + kpis.openMaintenance : '—'}
             </p>
@@ -308,21 +308,21 @@ export function DashboardView() {
       </div>
 
       {/* REVENUE BY PROPERTY BREAKDOWN */}
-      <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs">
+      <div className="bg-white p-5 border border-[#E2DDD6] shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Revenue Performance by Property</h3>
-            <p className="text-xs text-slate-500">
+            <h3 className="text-sm font-bold text-[#1E2A32] tracking-tight">Revenue Performance by Property</h3>
+            <p className="text-xs text-[#6B7A87]">
               Gross accommodation payments — {currentMonthLabel}
             </p>
           </div>
           {kpis && (
-            <span className="text-xs font-semibold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full">
+            <span className="text-xs font-semibold text-[#2E6E8E] bg-[#EBF3F8] border border-[#BCD5E5] px-2.5 py-1 rounded-[2px] font-tabular">
               {formatINR(kpis.revenueThisMonth)} Gross
             </span>
           )}
           {kpisLoading && (
-            <span className="text-xs text-slate-400 flex items-center gap-1">
+            <span className="text-xs text-[#9AAAB6] flex items-center gap-1">
               <Loader2 className="w-3 h-3 animate-spin" /> Loading…
             </span>
           )}
@@ -335,21 +335,21 @@ export function DashboardView() {
               .map((item) => (
                 <div key={item.propertyId} className="space-y-1">
                   <div className="flex items-center justify-between text-xs font-medium">
-                    <span className="text-slate-800">{item.propertyName}</span>
-                    <span className="font-bold text-slate-900 font-tabular">
+                    <span className="text-[#1E2A32]">{item.propertyName}</span>
+                    <span className="font-bold text-[#1E2A32] font-tabular">
                       {formatINR(item.revenue)}
                     </span>
                   </div>
-                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-1.5 w-full bg-[#F0EDE6] overflow-hidden rounded-[1px]">
                     <div
-                      className="h-full bg-teal-600 rounded-full transition-all duration-500"
+                      className="h-full bg-[#2E6E8E] transition-all duration-500"
                       style={{ width: `${Math.round((item.revenue / maxRevenue) * 100)}%` }}
                     />
                   </div>
                 </div>
               ))
           ) : (
-            <div className="py-8 text-center text-slate-400 text-xs">
+            <div className="py-8 text-center text-[#9AAAB6] text-xs">
               {kpisLoading
                 ? 'Loading revenue data…'
                 : 'No revenue data yet. Seed the demo portfolio or record payments to see data here.'}
@@ -361,45 +361,45 @@ export function DashboardView() {
       {/* TODAY'S ARRIVALS & DEPARTURES TABLES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Arrivals Table */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+        <div className="bg-white p-5 border border-[#E2DDD6] shadow-[0_1px_3px_rgba(0,0,0,0.05)] flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 border-b border-[#E2DDD6] pb-2.5">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-900">Today's Arrivals</h3>
+                <h3 className="text-sm font-bold text-[#1E2A32] tracking-tight">Today's Arrivals</h3>
                 <Badge variant="success" size="xs">
                   {kpis ? kpis.todayCheckIns : todayArrivals.length}
                 </Badge>
               </div>
-              <span className="text-xs text-slate-400">Expected Check-ins</span>
+              <span className="text-xs text-[#6B7A87]">Expected Check-ins</span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
+                  <tr className="border-b border-[#E2DDD6] text-[#6B7A87] font-semibold uppercase text-[10px]">
                     <th className="pb-2">Guest</th>
                     <th className="pb-2">Property &amp; Room</th>
                     <th className="pb-2">Status</th>
                     <th className="pb-2 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#F0EDE6]">
                   {todayArrivals.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="py-6 text-center text-slate-400 text-[11px]">
+                      <td colSpan={4} className="py-6 text-center text-[#9AAAB6] text-[11px]">
                         No arrivals scheduled for today
                       </td>
                     </tr>
                   ) : (
                     todayArrivals.slice(0, 5).map((arr) => (
-                      <tr key={arr.id} className="hover:bg-slate-50/70 transition-colors">
+                      <tr key={arr.id} className="hover:bg-[#F8F6F1] transition-colors">
                         <td className="py-2.5 pr-2">
-                          <p className="font-semibold text-slate-900">{arr.guestName}</p>
-                          <p className="text-[11px] text-slate-500">{arr.guestsCount} Guests</p>
+                          <p className="font-semibold text-[#1E2A32]">{arr.guestName}</p>
+                          <p className="text-[11px] text-[#6B7A87]">{arr.guestsCount} Guests</p>
                         </td>
                         <td className="py-2.5 pr-2">
-                          <p className="font-medium text-slate-800">{arr.propertyName}</p>
-                          <p className="text-[11px] text-teal-600 font-semibold">{arr.unitNumber}</p>
+                          <p className="font-medium text-[#3D4E5C]">{arr.propertyName}</p>
+                          <p className="text-[11px] text-[#2E6E8E] font-semibold">{arr.unitNumber}</p>
                         </td>
                         <td className="py-2.5 pr-2">
                           <Badge status={arr.status} size="xs">
@@ -434,50 +434,50 @@ export function DashboardView() {
         </div>
 
         {/* Departures Table */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+        <div className="bg-white p-5 border border-[#E2DDD6] shadow-[0_1px_3px_rgba(0,0,0,0.05)] flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 border-b border-[#E2DDD6] pb-2.5">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-900">Today's Departures</h3>
+                <h3 className="text-sm font-bold text-[#1E2A32] tracking-tight">Today's Departures</h3>
                 <Badge variant="info" size="xs">
                   {kpis ? kpis.todayCheckOuts : todayDepartures.length}
                 </Badge>
               </div>
-              <span className="text-xs text-slate-400">Checkout &amp; Balance</span>
+              <span className="text-xs text-[#6B7A87]">Checkout &amp; Balance</span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
+                  <tr className="border-b border-[#E2DDD6] text-[#6B7A87] font-semibold uppercase text-[10px]">
                     <th className="pb-2">Guest</th>
                     <th className="pb-2">Room</th>
                     <th className="pb-2">Balance</th>
                     <th className="pb-2 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#F0EDE6]">
                   {todayDepartures.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="py-6 text-center text-slate-400 text-[11px]">
+                      <td colSpan={4} className="py-6 text-center text-[#9AAAB6] text-[11px]">
                         No departures scheduled for today
                       </td>
                     </tr>
                   ) : (
                     todayDepartures.slice(0, 5).map((dep) => (
-                      <tr key={dep.id} className="hover:bg-slate-50/70 transition-colors">
+                      <tr key={dep.id} className="hover:bg-[#F8F6F1] transition-colors">
                         <td className="py-2.5 pr-2">
-                          <p className="font-semibold text-slate-900">{dep.guestName}</p>
-                          <p className="text-[11px] text-slate-500">{dep.propertyName}</p>
+                          <p className="font-semibold text-[#1E2A32]">{dep.guestName}</p>
+                          <p className="text-[11px] text-[#6B7A87]">{dep.propertyName}</p>
                         </td>
                         <td className="py-2.5 pr-2">
-                          <span className="font-semibold text-slate-800">{dep.unitNumber}</span>
+                          <span className="font-semibold text-[#3D4E5C]">{dep.unitNumber}</span>
                         </td>
                         <td className="py-2.5 pr-2 font-tabular font-semibold">
                           {dep.balance > 0 ? (
-                            <span className="text-rose-600">₹{dep.balance.toLocaleString('en-IN')}</span>
+                            <span className="text-[#8B3A3A]">₹{dep.balance.toLocaleString('en-IN')}</span>
                           ) : (
-                            <span className="text-emerald-600">Paid (₹0)</span>
+                            <span className="text-[#2A6B55]">Paid (₹0)</span>
                           )}
                         </td>
                         <td className="py-2.5 text-right space-x-1 whitespace-nowrap">
@@ -509,16 +509,16 @@ export function DashboardView() {
       </div>
 
       {/* FOLLOW-UPS DUE TODAY TABLE */}
-      <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs">
-        <div className="flex items-center justify-between mb-3">
+      <div className="bg-white p-5 border border-[#E2DDD6] shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center justify-between mb-3 border-b border-[#E2DDD6] pb-3">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-slate-900">CRM Follow-ups Due Today</h3>
+              <h3 className="text-sm font-bold text-[#1E2A32] tracking-tight">CRM Follow-ups Due Today</h3>
               <Badge variant="danger" size="xs">
                 {followUpsDueToday.length} Pending
               </Badge>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[#6B7A87] mt-0.5">
               Direct guest phone &amp; WhatsApp follow-ups to close pipeline bookings
             </p>
           </div>
@@ -534,7 +534,7 @@ export function DashboardView() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
+              <tr className="border-b border-[#E2DDD6] text-[#6B7A87] font-semibold uppercase text-[10px]">
                 <th className="pb-2">Time</th>
                 <th className="pb-2">Guest &amp; Phone</th>
                 <th className="pb-2">Property</th>
@@ -544,26 +544,26 @@ export function DashboardView() {
                 <th className="pb-2 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#F0EDE6]">
               {followUpsDueToday.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400 text-[11px]">
+                  <td colSpan={7} className="py-8 text-center text-[#9AAAB6] text-[11px]">
                     No follow-ups due today — great work! 🎉
                   </td>
                 </tr>
               ) : (
                 followUpsDueToday.slice(0, 5).map((fu) => (
-                  <tr key={fu.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3 pr-2 font-mono font-semibold text-slate-700">
+                  <tr key={fu.id} className="hover:bg-[#F8F6F1] transition-colors">
+                    <td className="py-3 pr-2 font-mono font-semibold text-[#1E2A32]">
                       {fu.scheduledTime}
                     </td>
                     <td className="py-3 pr-2">
-                      <p className="font-semibold text-slate-900">{fu.guestName}</p>
-                      <p className="text-[11px] text-slate-500 font-mono">{fu.guestPhone}</p>
+                      <p className="font-semibold text-[#1E2A32]">{fu.guestName}</p>
+                      <p className="text-[11px] text-[#6B7A87] font-mono">{fu.guestPhone}</p>
                     </td>
-                    <td className="py-3 pr-2 text-slate-700 font-medium">{fu.propertyName}</td>
-                    <td className="py-3 pr-2 text-slate-600 max-w-xs truncate">{fu.purpose}</td>
-                    <td className="py-3 pr-2 text-slate-700">{fu.assignedTo}</td>
+                    <td className="py-3 pr-2 text-[#3D4E5C] font-medium">{fu.propertyName}</td>
+                    <td className="py-3 pr-2 text-[#6B7A87] max-w-xs truncate">{fu.purpose}</td>
+                    <td className="py-3 pr-2 text-[#3D4E5C]">{fu.assignedTo}</td>
                     <td className="py-3 pr-2">
                       <Badge status={fu.status} size="xs">
                         {fu.status}
@@ -573,7 +573,7 @@ export function DashboardView() {
                       <Button
                         variant="outline"
                         size="xs"
-                        icon={<Phone className="w-3 h-3 text-teal-600" />}
+                        icon={<Phone className="w-3 h-3 text-[#2E6E8E]" />}
                         onClick={() => showToast('Simulating call...', `Dialing ${fu.guestPhone}`)}
                       >
                         Call
@@ -581,7 +581,7 @@ export function DashboardView() {
                       <Button
                         variant="outline"
                         size="xs"
-                        icon={<MessageSquare className="w-3 h-3 text-emerald-600" />}
+                        icon={<MessageSquare className="w-3 h-3 text-[#2A6B55]" />}
                         onClick={() =>
                           showToast('Simulating WhatsApp...', `Opening WhatsApp for ${fu.guestPhone}`)
                         }

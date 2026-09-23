@@ -5,7 +5,7 @@ import {
   LayoutDashboard,
   Calendar,
   PhoneCall,
-  Users,
+  Building2,
   Menu,
 } from 'lucide-react';
 import { NavigationModule } from './Sidebar';
@@ -29,57 +29,58 @@ export function MobileNav({
     {
       id: 'dashboard' as NavigationModule,
       label: 'Dashboard',
-      icon: <LayoutDashboard className="w-5 h-5" />,
+      icon: <LayoutDashboard className="w-4.5 h-4.5" />,
     },
     {
       id: 'reservations' as NavigationModule,
       label: 'Bookings',
-      icon: <Calendar className="w-5 h-5" />,
+      icon: <Calendar className="w-4.5 h-4.5" />,
     },
     {
       id: 'follow-ups' as NavigationModule,
       label: 'Follow-ups',
-      icon: <PhoneCall className="w-5 h-5" />,
+      icon: <PhoneCall className="w-4.5 h-4.5" />,
       badge: overdueCount > 0 ? overdueCount : undefined,
     },
     {
-      id: 'guests' as NavigationModule,
-      label: 'Guests',
-      icon: <Users className="w-5 h-5" />,
+      id: 'properties' as NavigationModule,
+      label: 'Properties',
+      icon: <Building2 className="w-4.5 h-4.5" />,
     },
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-2 py-1.5 flex items-center justify-around shadow-lg">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#1C2B35] border-t border-[#28394A] px-2 py-2 flex items-center justify-around">
       {navItems.map((item) => {
         const isActive = currentModule === item.id;
         return (
           <button
             key={item.id}
             onClick={() => onSelectModule(item.id)}
-            className={`flex flex-col items-center py-1 px-3 rounded-lg relative transition-colors ${
-              isActive ? 'text-teal-700 font-semibold' : 'text-slate-500 hover:text-slate-900'
-            }`}
+            className={`flex flex-col items-center py-1 px-3 relative transition-colors ${isActive ? 'text-[#A0C8E0]' : 'text-[#4A6070] hover:text-[#8AA0B0]'
+              }`}
           >
             <div className="relative">
               {item.icon}
               {typeof item.badge === 'number' && (
-                <span className="absolute -top-1 -right-2 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-2 w-4 h-4 bg-[#8B3A3A] text-white text-[9px] font-bold flex items-center justify-center rounded-[2px]">
                   {item.badge}
                 </span>
               )}
             </div>
-            <span className="text-[10px] mt-0.5">{item.label}</span>
+            <span className="text-[9px] mt-1 uppercase tracking-wider font-semibold">
+              {item.label}
+            </span>
           </button>
         );
       })}
 
       <button
         onClick={onOpenMoreMenu}
-        className="flex flex-col items-center py-1 px-3 rounded-lg text-slate-500 hover:text-slate-900 transition-colors"
+        className="flex flex-col items-center py-1 px-3 text-[#4A6070] hover:text-[#8AA0B0] transition-colors"
       >
-        <Menu className="w-5 h-5" />
-        <span className="text-[10px] mt-0.5">More</span>
+        <Menu className="w-4.5 h-4.5" />
+        <span className="text-[9px] mt-1 uppercase tracking-wider font-semibold">More</span>
       </button>
     </nav>
   );

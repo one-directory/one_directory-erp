@@ -6,12 +6,14 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   hoverable?: boolean;
 }
 
+// Flat surface: no border-radius, hairline border, subtle shadow
 export function Card({ children, className = '', hoverable = false, ...props }: CardProps) {
   return (
     <div
-      className={`bg-white rounded-xl border border-slate-200/90 shadow-xs ${
-        hoverable ? 'hover:shadow-md hover:border-slate-300 transition-all duration-150' : ''
-      } ${className}`}
+      className={`bg-white border border-[#E2DDD6] shadow-[0_1px_3px_rgba(0,0,0,0.05)] ${hoverable
+          ? 'hover:border-[#CEC9C1] hover:shadow-[0_2px_6px_rgba(0,0,0,0.08)] transition-all duration-150 cursor-pointer'
+          : ''
+        } ${className}`}
       {...props}
     >
       {children}
@@ -31,6 +33,7 @@ interface StatCardProps {
   className?: string;
 }
 
+// StatCard — no icon box background, inline label, strong value hierarchy
 export function StatCard({
   title,
   value,
@@ -45,48 +48,50 @@ export function StatCard({
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-xl p-4 sm:p-5 border border-slate-200/90 shadow-xs flex flex-col justify-between ${
-        onClick ? 'cursor-pointer hover:border-teal-400 hover:shadow-md transition-all' : ''
-      } ${className}`}
+      className={`bg-white border border-[#E2DDD6] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ${onClick
+          ? 'cursor-pointer hover:border-[#2E6E8E]/40 hover:shadow-[0_2px_6px_rgba(0,0,0,0.08)] transition-all duration-150'
+          : ''
+        } ${className}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-xs sm:text-sm font-medium text-slate-500 line-clamp-1">{title}</span>
-        <div className="w-9 h-9 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
-          {icon}
-        </div>
-      </div>
-
-      <div className="mt-2">
-        <div className="flex items-baseline gap-2">
-          <span className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight font-tabular">
-            {value}
+      {/* Label row: icon inline with title */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[#9AAAB6] shrink-0">{icon}</span>
+          <span className="text-[11px] font-semibold tracking-wide uppercase text-[#6B7A87]">
+            {title}
           </span>
-          {badge && (
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-              {badge}
-            </span>
-          )}
         </div>
-
-        {(subtitle || change) && (
-          <div className="mt-1 flex items-center gap-1.5 text-xs">
-            {change && (
-              <span
-                className={`font-semibold ${
-                  trend === 'up'
-                    ? 'text-emerald-600'
-                    : trend === 'down'
-                    ? 'text-rose-600'
-                    : 'text-slate-500'
-                }`}
-              >
-                {change}
-              </span>
-            )}
-            {subtitle && <span className="text-slate-400">{subtitle}</span>}
-          </div>
+        {badge && (
+          <span className="text-[9px] font-semibold tracking-wide uppercase px-1.5 py-0.5 border border-[#D8D2C8] text-[#6B7A87] bg-[#F0EDE6] rounded-[2px]">
+            {badge}
+          </span>
         )}
       </div>
+
+      {/* Value — large, tabular, prominent */}
+      <div className="flex items-baseline gap-2">
+        <span className="text-2xl font-bold text-[#1E2A32] tracking-tight font-tabular leading-none">
+          {value}
+        </span>
+      </div>
+
+      {(subtitle || change) && (
+        <div className="mt-1.5 flex items-center gap-1.5 text-xs">
+          {change && (
+            <span
+              className={`font-semibold ${trend === 'up'
+                  ? 'text-[#2A6B55]'
+                  : trend === 'down'
+                    ? 'text-[#8B3A3A]'
+                    : 'text-[#6B7A87]'
+                }`}
+            >
+              {change}
+            </span>
+          )}
+          {subtitle && <span className="text-[#9AAAB6]">{subtitle}</span>}
+        </div>
+      )}
     </div>
   );
 }

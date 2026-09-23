@@ -49,36 +49,40 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-      {/* Backdrop */}
+      {/* Backdrop — warm tinted */}
       <div
-        className="fixed inset-0 bg-slate-900/45 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-[#1E2A32]/45 transition-opacity animate-fade-in"
         onClick={onClose}
       />
 
-      {/* Modal Container */}
+      {/* Modal Container — squared, clean */}
       <div
-        className={`relative w-full ${maxWidthStyles[maxWidth]} bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col my-8 max-h-[90vh] z-10`}
+        className={`relative w-full ${maxWidthStyles[maxWidth]} bg-white border border-[#E2DDD6] shadow-[0_8px_32px_rgba(0,0,0,0.12)] overflow-hidden flex flex-col my-8 max-h-[90vh] z-10 animate-fade-in-up`}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between p-5 border-b border-slate-100 bg-slate-50/50">
+        {/* Header — strong separator */}
+        <div className="flex items-start justify-between px-5 py-4 border-b-2 border-[#E2DDD6]">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-            {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+            <h3 className="text-sm font-bold text-[#1E2A32] tracking-tight">{title}</h3>
+            {subtitle && (
+              <p className="text-xs text-[#6B7A87] mt-0.5">{subtitle}</p>
+            )}
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-1 text-[#9AAAB6] hover:text-[#3D4E5C] hover:bg-[#F0EDE6] transition-colors rounded-[2px]"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-sm text-slate-700">{children}</div>
+        <div className="px-5 py-5 sm:px-6 sm:py-5 overflow-y-auto space-y-4 text-sm text-[#3D4E5C]">
+          {children}
+        </div>
 
         {/* Footer */}
         {footer && (
-          <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-3">
+          <div className="px-5 py-4 border-t border-[#E2DDD6] flex items-center justify-end gap-3 bg-[#F8F6F1]">
             {footer}
           </div>
         )}

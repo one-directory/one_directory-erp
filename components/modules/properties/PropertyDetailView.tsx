@@ -130,11 +130,10 @@ export function PropertyDetailView({ propertyId, onBack }: PropertyDetailViewPro
         </div>
       </div>
 
-      {/* TABS (Overview, Units, Unit Types, Reservations, Housekeeping, Maintenance, Revenue, Reviews) */}
+      {/* TABS */}
       <Tabs
         tabs={[
           { id: 'units', label: `Units (${propUnits.length})` },
-          { id: 'unit-types', label: `Unit Types (${propUnitTypes.length})` },
           { id: 'reservations', label: `Bookings (${propReservations.length})` },
           { id: 'housekeeping', label: `Housekeeping (${propHousekeeping.length})` },
           { id: 'maintenance', label: `Maintenance (${propMaintenance.length})` },
@@ -260,46 +259,6 @@ export function PropertyDetailView({ propertyId, onBack }: PropertyDetailViewPro
         </div>
       )}
 
-      {/* TAB 2: UNIT TYPES */}
-      {activeTab === 'unit-types' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden p-5 space-y-4">
-          <h3 className="text-sm font-bold text-slate-900">Room Categories & Base Tariffs</h3>
-          <div className="space-y-3">
-            {propUnitTypes.map((ut) => (
-              <div
-                key={ut.id}
-                className="p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-              >
-                <div>
-                  <h4 className="font-bold text-slate-900 text-sm">{ut.name}</h4>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Capacity: {ut.capacity} Guests • {ut.bedConfiguration} • {ut.numberOfUnits} Units
-                  </p>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {ut.amenities.map((a, i) => (
-                      <span
-                        key={i}
-                        className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full"
-                      >
-                        {a}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="text-right sm:border-l sm:pl-6 border-slate-200">
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Base Rate</span>
-                  <p className="text-base font-bold text-teal-800 font-tabular">
-                    ₹{ut.baseRate.toLocaleString('en-IN')} / night
-                  </p>
-                  <Badge variant="success" size="xs" className="mt-1">
-                    {ut.status}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* TAB 3: RESERVATIONS */}
       {activeTab === 'reservations' && (
