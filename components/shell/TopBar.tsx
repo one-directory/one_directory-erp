@@ -58,7 +58,6 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
 
   const unreadNotifs = notifications.filter((n) => !n.read);
 
-  // Close popovers on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (newMenuRef.current && !newMenuRef.current.contains(e.target as Node)) {
@@ -92,53 +91,54 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
     await logout();
   };
 
-  const userInitials = user?.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
+  const userInitials =
+    user?.name?.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
+
+  // Dropdown item base class — consistent across menus
+  const dropdownItem =
+    'w-full px-4 py-2 text-left text-[13px] text-[#3D4E5C] hover:bg-[#F0EDE6] hover:text-[#1E2A32] flex items-center gap-2.5 transition-colors cursor-pointer';
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-white border-b border-slate-200/90 px-4 sm:px-6 flex items-center justify-between gap-4">
-      {/* Left section: Hamburger for mobile + Property Selector */}
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-30 h-12 bg-[#F8F6F1] border-b border-[#E2DDD6] px-4 sm:px-6 flex items-center justify-between gap-4">
+      {/* Left: Hamburger (mobile) + Property Selector */}
+      <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onOpenMobileMenu}
-          className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          className="md:hidden p-1.5 text-[#6B7A87] hover:text-[#1E2A32] hover:bg-[#E8E3DA] transition-colors"
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="w-4 h-4" />
         </button>
 
-        {/* Global Property Selector */}
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-2xs">
-          <Building2 className="w-4 h-4 text-teal-600 shrink-0" />
+        {/* Property Selector — slim inline pill with separator */}
+        <div className="flex items-center gap-2 border-r border-[#D8D2C8] pr-4">
+          <Building2 className="w-3.5 h-3.5 text-[#9AAAB6] shrink-0" />
           <select
             value={selectedPropertyId}
             onChange={(e) => setSelectedPropertyId(e.target.value)}
-            className="bg-transparent text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none cursor-pointer pr-2"
+            className="bg-transparent text-[12px] font-semibold text-[#3D4E5C] focus:outline-none cursor-pointer uppercase tracking-wide"
           >
-            <option value="all">All Properties (7 Active)</option>
+            <option value="all">All Properties (7)</option>
             {properties.map((prop) => (
               <option key={prop.id} value={prop.id}>
-                {prop.name} ({prop.type})
+                {prop.name}
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Middle: Search Trigger (Ctrl+K) */}
-      <div className="flex-1 max-w-md hidden sm:block">
+      {/* Right: Actions row */}
+      <div className="flex items-center gap-1">
+
+        {/* Search — icon only, triggers command palette */}
         <button
           onClick={() => setIsCommandPaletteOpen(true)}
-          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-400 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors text-left"
+          className="p-2 text-[#9AAAB6] hover:text-[#3D4E5C] hover:bg-[#EBE7E0] transition-colors"
+          title="Search (⌘K)"
         >
-          <Search className="w-4 h-4 shrink-0" />
-          <span className="flex-1">Search anything...</span>
-          <kbd className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono bg-slate-200 text-slate-500 rounded">
-            ⌘K
-          </kbd>
+          <Search className="w-4 h-4" />
         </button>
-      </div>
 
-      {/* Right Section: Actions */}
-      <div className="flex items-center gap-1.5 sm:gap-2">
         {/* + New Action */}
         <div className="relative" ref={newMenuRef}>
           <Button
@@ -146,101 +146,80 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
             variant="primary"
             size="sm"
             onClick={() => setIsNewMenuOpen((prev) => !prev)}
-            className="hidden sm:flex"
+            className="hidden sm:flex ml-1"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             <span>New</span>
-            <ChevronDown className="w-3 h-3" />
           </Button>
           <button
             onClick={() => setIsNewMenuOpen((prev) => !prev)}
-            className="sm:hidden p-2 rounded-xl bg-teal-600 text-white hover:bg-teal-700 transition-colors"
+            className="sm:hidden p-2 bg-[#1C2B35] text-white hover:bg-[#253542] transition-colors"
           >
             <Plus className="w-4 h-4" />
           </button>
 
           {isNewMenuOpen && (
-            <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2">
-              <p className="px-3.5 pt-1 pb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Quick Create</p>
-              <button
-                onClick={() => handleOpenAction('new-reservation')}
-                className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-50 hover:text-teal-700 flex items-center gap-2.5 transition-colors cursor-pointer"
-              >
-                <Calendar className="w-4 h-4 text-teal-600" />
+            <div className="absolute right-0 mt-1 w-52 bg-white border border-[#E2DDD6] shadow-[0_8px_24px_rgba(0,0,0,0.12)] py-1 z-50 animate-fade-in-up">
+              <p className="px-4 pt-2 pb-1.5 text-[9px] font-bold text-[#9AAAB6] uppercase tracking-[0.12em]">
+                Quick Create
+              </p>
+              <button onClick={() => handleOpenAction('new-reservation')} className={dropdownItem}>
+                <Calendar className="w-3.5 h-3.5 text-[#2E6E8E] shrink-0" />
                 <span>Reservation</span>
               </button>
-              <button
-                onClick={() => handleOpenAction('new-guest')}
-                className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-50 hover:text-teal-700 flex items-center gap-2.5 transition-colors cursor-pointer"
-              >
-                <UserPlus className="w-4 h-4 text-teal-600" />
+              <button onClick={() => handleOpenAction('new-guest')} className={dropdownItem}>
+                <UserPlus className="w-3.5 h-3.5 text-[#2E6E8E] shrink-0" />
                 <span>Guest Profile</span>
               </button>
-              <button
-                onClick={() => handleOpenAction('new-lead')}
-                className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-50 hover:text-teal-700 flex items-center gap-2.5 transition-colors cursor-pointer"
-              >
-                <PhoneCall className="w-4 h-4 text-teal-600" />
+              <button onClick={() => handleOpenAction('new-lead')} className={dropdownItem}>
+                <PhoneCall className="w-3.5 h-3.5 text-[#2E6E8E] shrink-0" />
                 <span>New Lead</span>
               </button>
-              <button
-                onClick={() => handleOpenAction('new-quotation')}
-                className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-50 hover:text-teal-700 flex items-center gap-2.5 transition-colors cursor-pointer"
-              >
-                <FileText className="w-4 h-4 text-teal-600" />
+              <button onClick={() => handleOpenAction('new-quotation')} className={dropdownItem}>
+                <FileText className="w-3.5 h-3.5 text-[#2E6E8E] shrink-0" />
                 <span>Quotation</span>
               </button>
-              <div className="border-t border-slate-100 my-1" />
-              <button
-                onClick={() => handleOpenAction('record-payment')}
-                className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-50 hover:text-teal-700 flex items-center gap-2.5 transition-colors cursor-pointer"
-              >
-                <CreditCard className="w-4 h-4 text-teal-600" />
+              <div className="my-1 border-t border-[#E2DDD6]" />
+              <button onClick={() => handleOpenAction('record-payment')} className={dropdownItem}>
+                <CreditCard className="w-3.5 h-3.5 text-[#2E6E8E] shrink-0" />
                 <span>Record Payment</span>
               </button>
-              <button
-                onClick={() => handleOpenAction('add-expense')}
-                className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-50 hover:text-teal-700 flex items-center gap-2.5 transition-colors cursor-pointer"
-              >
-                <Receipt className="w-4 h-4 text-teal-600" />
+              <button onClick={() => handleOpenAction('add-expense')} className={dropdownItem}>
+                <Receipt className="w-3.5 h-3.5 text-[#2E6E8E] shrink-0" />
                 <span>Log Expense</span>
               </button>
-              <div className="border-t border-slate-100 my-1" />
-              <button
-                onClick={() => handleOpenAction('maintenance-ticket')}
-                className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-50 hover:text-teal-700 flex items-center gap-2.5 transition-colors cursor-pointer"
-              >
-                <Wrench className="w-4 h-4 text-teal-600" />
+              <div className="my-1 border-t border-[#E2DDD6]" />
+              <button onClick={() => handleOpenAction('maintenance-ticket')} className={dropdownItem}>
+                <Wrench className="w-3.5 h-3.5 text-[#2E6E8E] shrink-0" />
                 <span>Maintenance Ticket</span>
               </button>
-              <button
-                onClick={() => handleOpenAction('housekeeping-task')}
-                className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-50 hover:text-teal-700 flex items-center gap-2.5 transition-colors cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4 text-teal-600" />
+              <button onClick={() => handleOpenAction('housekeeping-task')} className={dropdownItem}>
+                <Sparkles className="w-3.5 h-3.5 text-[#2E6E8E] shrink-0" />
                 <span>Housekeeping Task</span>
               </button>
             </div>
           )}
         </div>
 
-        {/* Notifications Popover */}
+        {/* Notifications */}
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => setIsNotifOpen((prev) => !prev)}
-            className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 relative transition-colors cursor-pointer"
+            className="p-2 text-[#9AAAB6] hover:text-[#3D4E5C] hover:bg-[#EBE7E0] relative transition-colors"
           >
-            <Bell className="w-5 h-5" />
+            <Bell className="w-4 h-4" />
             {unreadNotifs.length > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white"></span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#8B3A3A] border border-[#F8F6F1] rounded-full" />
             )}
           </button>
 
           {isNotifOpen && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 py-3 z-50 animate-in fade-in slide-in-from-top-2">
-              <div className="px-4 pb-2 border-b border-slate-100 flex items-center justify-between">
+            <div className="absolute right-0 mt-1 w-80 sm:w-96 bg-white border border-[#E2DDD6] shadow-[0_8px_24px_rgba(0,0,0,0.12)] z-50 animate-fade-in-up">
+              <div className="px-4 py-3 border-b border-[#E2DDD6] flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-bold text-slate-900">Notifications</h4>
+                  <h4 className="text-xs font-bold text-[#1E2A32] uppercase tracking-wider">
+                    Notifications
+                  </h4>
                   {unreadNotifs.length > 0 && (
                     <Badge variant="danger" size="xs">
                       {unreadNotifs.length} new
@@ -250,17 +229,16 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
                 {unreadNotifs.length > 0 && (
                   <button
                     onClick={markAllNotificationsRead}
-                    className="text-xs text-teal-600 hover:text-teal-700 font-semibold flex items-center gap-1"
+                    className="text-[11px] text-[#2E6E8E] hover:text-[#275E7A] font-semibold flex items-center gap-1 transition-colors"
                   >
-                    <CheckCheck className="w-3.5 h-3.5" />
+                    <CheckCheck className="w-3 h-3" />
                     <span>Mark all read</span>
                   </button>
                 )}
               </div>
-
-              <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+              <div className="max-h-80 overflow-y-auto divide-y divide-[#F0EDE6]">
                 {notifications.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-slate-400">
+                  <div className="p-6 text-center text-xs text-[#9AAAB6]">
                     No notifications yet.
                   </div>
                 ) : (
@@ -268,19 +246,18 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
                     <div
                       key={notif.id}
                       onClick={() => markNotificationRead(notif.id)}
-                      className={`p-3.5 hover:bg-slate-50 transition-colors cursor-pointer ${
-                        !notif.read ? 'bg-teal-50/40' : ''
-                      }`}
+                      className={`px-4 py-3 hover:bg-[#F8F6F1] transition-colors cursor-pointer ${!notif.read ? 'border-l-2 border-l-[#2E6E8E]' : 'border-l-2 border-l-transparent'
+                        }`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-900">
+                        <span className="text-xs font-semibold text-[#1E2A32]">
                           {notif.title}
                         </span>
-                        <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                        <span className="text-[10px] text-[#9AAAB6] whitespace-nowrap">
                           {notif.time}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-600 mt-1 line-clamp-2">
+                      <p className="text-xs text-[#6B7A87] mt-0.5 line-clamp-2">
                         {notif.message}
                       </p>
                     </div>
@@ -296,50 +273,55 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
           <button
             id="topbar-user-menu"
             onClick={() => setIsUserMenuOpen((prev) => !prev)}
-            className="hidden sm:flex items-center gap-2.5 pl-2 border-l border-slate-200 hover:opacity-80 transition-opacity cursor-pointer"
+            className="hidden sm:flex items-center gap-2 pl-2 ml-1 border-l border-[#D8D2C8] hover:opacity-80 transition-opacity cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs">
+            {/* Initials — clean, no rounded full */}
+            <div className="w-6 h-6 bg-[#1C2B35] text-white flex items-center justify-center font-bold text-[10px] rounded-[2px]">
               {userInitials}
             </div>
             <div className="text-left hidden lg:block">
-              <p className="text-xs font-semibold text-slate-900 leading-tight">{user?.name?.split(' ')[0] || 'User'}</p>
-              <p className={`text-[10px] font-semibold ${roleInfo?.badgeClass.split(' ')[1] || 'text-teal-600'}`}>
+              <p className="text-[11px] font-bold text-[#1E2A32] leading-tight tracking-tight">
+                {user?.name?.split(' ')[0] || 'User'}
+              </p>
+              <p className="text-[9px] font-semibold text-[#9AAAB6] uppercase tracking-wider">
                 {roleInfo?.label || user?.role}
               </p>
             </div>
-            <ChevronDown className="w-3 h-3 text-slate-400 hidden lg:block" />
+            <ChevronDown className="w-3 h-3 text-[#9AAAB6] hidden lg:block" />
           </button>
 
           {isUserMenuOpen && (
-            <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 py-3 z-50 animate-in fade-in slide-in-from-top-2">
+            <div className="absolute right-0 mt-1 w-72 bg-white border border-[#E2DDD6] shadow-[0_8px_24px_rgba(0,0,0,0.12)] z-50 animate-fade-in-up">
               {/* User info header */}
-              <div className="px-4 pb-3 border-b border-slate-100">
+              <div className="px-4 py-4 border-b border-[#E2DDD6] bg-[#F8F6F1]">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                  <div className="w-9 h-9 bg-[#1C2B35] text-white flex items-center justify-center font-bold text-sm shrink-0 rounded-[2px]">
                     {userInitials}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-900">{user?.name}</p>
-                    <p className="text-xs text-slate-500">{user?.email}</p>
+                    <p className="text-sm font-bold text-[#1E2A32]">{user?.name}</p>
+                    <p className="text-xs text-[#9AAAB6]">{user?.email}</p>
                     {roleInfo && (
-                      <span className={`inline-flex mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${roleInfo.badgeClass}`}>
+                      <Badge variant="neutral" size="xs" className="mt-1">
                         {roleInfo.label}
-                      </span>
+                      </Badge>
                     )}
                   </div>
                 </div>
                 {user?.department && (
-                  <p className="text-xs text-slate-400 mt-2">{user.department}</p>
+                  <p className="text-xs text-[#9AAAB6] mt-2 pl-0">{user.department}</p>
                 )}
               </div>
 
               {/* Demo Role Switcher */}
-              <div className="px-4 py-3 border-b border-slate-100">
+              <div className="px-4 py-3 border-b border-[#E2DDD6]">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <Zap className="w-3 h-3 text-amber-500" />
-                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Switch Demo Role</p>
+                  <Zap className="w-3 h-3 text-[#7A5C2E]" />
+                  <p className="text-[9px] font-bold text-[#9AAAB6] uppercase tracking-[0.12em]">
+                    Switch Demo Role
+                  </p>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {DEMO_ACCOUNTS.map(({ role }) => {
                     const info = ROLE_INFO_MAP[role];
                     const isCurrent = user?.role === role;
@@ -349,19 +331,18 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
                         key={role}
                         onClick={() => !isCurrent && handleDemoSwitch(role)}
                         disabled={isCurrent || !!switchingRole}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
-                          isCurrent
-                            ? 'bg-teal-50 border border-teal-200 cursor-default'
-                            : 'hover:bg-slate-50 cursor-pointer disabled:opacity-60 disabled:cursor-wait'
-                        }`}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs transition-colors ${isCurrent
+                            ? 'bg-[#EAF0F8] text-[#2E5E8E] cursor-default border-l-2 border-[#2E6E8E]'
+                            : 'text-[#3D4E5C] hover:bg-[#F0EDE6] cursor-pointer disabled:opacity-60 disabled:cursor-wait'
+                          }`}
                       >
-                        <span className="font-medium text-slate-700">{info.label}</span>
+                        <span className="font-medium">{info.label}</span>
                         <div className="flex items-center gap-1.5">
                           {isSwitching && (
-                            <div className="w-3 h-3 border border-teal-400 border-t-transparent rounded-full animate-spin" />
+                            <div className="w-3 h-3 border border-[#2E6E8E] border-t-transparent rounded-full animate-spin" />
                           )}
                           {isCurrent && !isSwitching && (
-                            <span className="text-[9px] text-teal-600 font-bold">ACTIVE</span>
+                            <span className="text-[8px] text-[#2E6E8E] font-bold uppercase tracking-wider">Active</span>
                           )}
                         </div>
                       </button>
@@ -371,13 +352,13 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
               </div>
 
               {/* Sign Out */}
-              <div className="px-4 pt-2">
+              <div className="px-4 py-2">
                 <button
                   id="topbar-sign-out"
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 text-[#8B3A3A] hover:bg-[#F5EAEA] text-sm font-medium transition-colors cursor-pointer"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-3.5 h-3.5" />
                   <span>Sign Out</span>
                 </button>
               </div>
@@ -388,4 +369,3 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
     </header>
   );
 }
-

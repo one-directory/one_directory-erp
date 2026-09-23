@@ -8,12 +8,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import {
   Calendar,
   Search,
-  Filter,
   Plus,
-  ArrowUpDown,
-  CheckCircle,
-  CreditCard,
-  LogOut,
 } from 'lucide-react';
 
 export function ReservationsListView() {
@@ -24,7 +19,6 @@ export function ReservationsListView() {
     openGlobalModal,
     checkInGuest,
     checkOutGuest,
-    cancelReservation,
   } = useERP();
 
   const [statusFilter, setStatusFilter] = useState('all');
@@ -48,17 +42,17 @@ export function ReservationsListView() {
   });
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Header */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 animate-fade-in">
+      {/* Header Masthead */}
+      <div className="bg-white p-5 border border-[#E2DDD6] shadow-[0_1px_3px_rgba(0,0,0,0.05)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Reservations Master</h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#1E2A32] tracking-tight">Reservations Master</h1>
             <Badge variant="info" size="xs">
               {filteredReservations.length} Bookings
             </Badge>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-[#6B7A87] mt-1">
             Complete booking log across direct and OTA channels with real-time check-in controls
           </p>
         </div>
@@ -74,23 +68,23 @@ export function ReservationsListView() {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="bg-white p-4 border border-[#E2DDD6] shadow-[0_1px_3px_rgba(0,0,0,0.05)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <div className="relative w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-[#9AAAB6] absolute left-3 top-2.5" />
             <input
               type="text"
               placeholder="Search booking ID, guest..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-[#FAF9F7] border border-[#D8D2C8] rounded-[2px] text-[#1E2A32] placeholder-[#9AAAB6] focus:outline-none focus:border-[#2E6E8E]"
             />
           </div>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none"
+            className="bg-[#FAF9F7] border border-[#D8D2C8] rounded-[2px] px-2.5 py-1.5 text-xs font-medium text-[#3D4E5C] focus:outline-none focus:border-[#2E6E8E]"
           >
             <option value="all">All Statuses</option>
             <option value="Confirmed">Confirmed</option>
@@ -104,7 +98,7 @@ export function ReservationsListView() {
           <select
             value={sourceFilter}
             onChange={(e) => setSourceFilter(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none"
+            className="bg-[#FAF9F7] border border-[#D8D2C8] rounded-[2px] px-2.5 py-1.5 text-xs font-medium text-[#3D4E5C] focus:outline-none focus:border-[#2E6E8E]"
           >
             <option value="all">All Channels / Sources</option>
             <option value="Website">Direct Website</option>
@@ -121,18 +115,18 @@ export function ReservationsListView() {
       {/* RESERVATIONS TABLE */}
       {filteredReservations.length === 0 ? (
         <EmptyState
-          icon={<Calendar className="w-6 h-6" />}
+          icon={<Calendar className="w-6 h-6 text-[#9AAAB6]" />}
           title="No reservations match the filters"
           description="Try broadening your search or creating a new reservation."
           actionLabel="+ New Reservation"
           onAction={() => openGlobalModal('new-reservation')}
         />
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+        <div className="bg-white border border-[#E2DDD6] shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px] tracking-wider">
+                <tr className="bg-[#FAF9F7] border-b border-[#E2DDD6] text-[#6B7A87] font-semibold uppercase text-[10px] tracking-wider">
                   <th className="py-3 px-4">Booking ID</th>
                   <th className="py-3 px-4">Guest & Contact</th>
                   <th className="py-3 px-4">Property & Room</th>
@@ -144,54 +138,54 @@ export function ReservationsListView() {
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#F0EDE6]">
                 {filteredReservations.map((res) => (
-                  <tr key={res.id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr key={res.id} className="hover:bg-[#F8F6F1] transition-colors">
                     {/* Booking ID */}
-                    <td className="py-3 px-4 font-mono font-bold text-teal-800">
+                    <td className="py-3 px-4 font-mono font-bold text-[#2E6E8E]">
                       {res.bookingId}
                     </td>
 
                     {/* Guest */}
                     <td className="py-3 px-4">
-                      <p className="font-bold text-slate-900">{res.guestName}</p>
-                      <p className="text-[11px] text-slate-500">{res.guestPhone}</p>
+                      <p className="font-bold text-[#1E2A32]">{res.guestName}</p>
+                      <p className="text-[11px] text-[#6B7A87] font-mono">{res.guestPhone}</p>
                     </td>
 
                     {/* Property & Room */}
                     <td className="py-3 px-4">
-                      <p className="font-medium text-slate-800">{res.propertyName}</p>
-                      <p className="text-[11px] text-slate-500 font-semibold">{res.unitNumber}</p>
+                      <p className="font-medium text-[#3D4E5C]">{res.propertyName}</p>
+                      <p className="text-[11px] text-[#6B7A87] font-semibold">{res.unitNumber}</p>
                     </td>
 
                     {/* Dates */}
-                    <td className="py-3 px-4 whitespace-nowrap text-slate-600">
+                    <td className="py-3 px-4 whitespace-nowrap text-[#3D4E5C]">
                       <p>
                         {res.checkIn} → {res.checkOut}
                       </p>
-                      <span className="text-[10px] text-slate-400 font-medium">
+                      <span className="text-[10px] text-[#9AAAB6] font-medium">
                         {res.nights} Nights • {res.guestsCount} Pax
                       </span>
                     </td>
 
                     {/* Source */}
                     <td className="py-3 px-4 whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 font-semibold text-[11px] text-slate-700">
+                      <span className="px-2 py-0.5 rounded-[2px] bg-[#F0EDE6] border border-[#D8D2C8] font-semibold text-[10px] uppercase text-[#3D4E5C]">
                         {res.source}
                       </span>
                     </td>
 
                     {/* Total */}
-                    <td className="py-3 px-4 font-bold text-slate-900 font-tabular">
+                    <td className="py-3 px-4 font-bold text-[#1E2A32] font-tabular">
                       ₹{res.total.toLocaleString('en-IN')}
                     </td>
 
                     {/* Balance */}
                     <td className="py-3 px-4 font-tabular font-semibold">
                       {res.balance > 0 ? (
-                        <span className="text-rose-600">₹{res.balance.toLocaleString('en-IN')}</span>
+                        <span className="text-[#8B3A3A]">₹{res.balance.toLocaleString('en-IN')}</span>
                       ) : (
-                        <span className="text-emerald-600">Paid (₹0)</span>
+                        <span className="text-[#2A6B55]">Paid (₹0)</span>
                       )}
                     </td>
 

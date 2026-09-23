@@ -80,37 +80,39 @@ export function Badge({
     }
   }
 
+  // Flat lozenge: no border-radius, uppercase tracked, editorial look
   const variantStyles: Record<BadgeVariant, string> = {
-    default: 'bg-slate-100 text-slate-800 border-slate-200',
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    warning: 'bg-amber-50 text-amber-800 border-amber-200',
-    danger: 'bg-rose-50 text-rose-700 border-rose-200',
-    info: 'bg-sky-50 text-sky-700 border-sky-200',
-    neutral: 'bg-gray-100 text-gray-700 border-gray-200',
-    purple: 'bg-purple-50 text-purple-700 border-purple-200',
+    default: 'bg-[#F0EDE6] text-[#3D4E5C] border-[#D8D2C8]',
+    success: 'bg-[#EAF4EF] text-[#1E5A44] border-[#B8DDD0]',
+    warning: 'bg-[#F7F0E4] text-[#6A4E22] border-[#DFC89A]',
+    danger: 'bg-[#F5EAEA] text-[#7A2E2E] border-[#DDB8B8]',
+    info: 'bg-[#EAF0F8] text-[#24507A] border-[#B8CEDD]',
+    neutral: 'bg-[#F0EDE6] text-[#5A6470] border-[#D8D2C8]',
+    purple: 'bg-[#EEE8F8] text-[#5A3E8A] border-[#CBBCE8]',
   };
 
   const dotStyles: Record<BadgeVariant, string> = {
-    default: 'bg-slate-400',
-    success: 'bg-emerald-500',
-    warning: 'bg-amber-500',
-    danger: 'bg-rose-500',
-    info: 'bg-sky-500',
-    neutral: 'bg-gray-400',
-    purple: 'bg-purple-500',
+    default: 'bg-[#9AAAB6]',
+    success: 'bg-[#2A6B55]',
+    warning: 'bg-[#7A5C2E]',
+    danger: 'bg-[#8B3A3A]',
+    info: 'bg-[#2E5E8E]',
+    neutral: 'bg-[#9AAAB6]',
+    purple: 'bg-[#7C5CC4]',
   };
 
   const sizeStyles = {
-    xs: 'text-[10px] px-1.5 py-0.5 leading-none',
-    sm: 'text-xs px-2 py-0.5',
-    md: 'text-sm px-2.5 py-1',
+    // Flat, tight, uppercase tracked — editorial not pill
+    xs: 'text-[9px] px-1.5 py-[2px] leading-none tracking-wide uppercase font-semibold',
+    sm: 'text-[10px] px-2 py-0.5 tracking-wide uppercase font-semibold',
+    md: 'text-xs px-2.5 py-1 tracking-wide uppercase font-semibold',
   };
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 font-medium rounded-full border ${variantStyles[computedVariant]} ${sizeStyles[size]} ${className}`}
+      className={`inline-flex items-center gap-1 border rounded-[2px] ${variantStyles[computedVariant]} ${sizeStyles[size]} ${className}`}
     >
-      {dot && <span className={`w-1.5 h-1.5 rounded-full ${dotStyles[computedVariant]}`} />}
+      {dot && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotStyles[computedVariant]}`} />}
       {children}
     </span>
   );

@@ -1,55 +1,297 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #0d9488;
-  --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #1e293b;
-  --muted: #f8fafc;
-  --muted-foreground: #64748b;
-  --accent: #f0fdfa;
-  --accent-foreground: #0f766e;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #0d9488;
+@theme {
+  --color-teal-50: #EBF3F8;
+  --color-teal-100: #D8E7F1;
+  --color-teal-200: #BCD5E5;
+  --color-teal-300: #8EB9D3;
+  --color-teal-400: #5C97BD;
+  --color-teal-500: #3D7EA7;
+  --color-teal-600: #2E6E8E;
+  --color-teal-700: #275E7A;
+  --color-teal-800: #1F4B62;
+  --color-teal-900: #183A4C;
 }
+
+/* =========================================================
+   ONE DIRECTORY ERP — Design System v2
+   Premium Hospitality Enterprise Platform
+   Palette: Warm Off-White · Deep Charcoal · Muted Slate-Blue
+   ========================================================= */
+
+:root {
+  /* --- Surface & Background --- */
+  --background: #F8F6F1;
+  /* warm off-white parchment */
+  --background-2: #F2EFE9;
+  /* slightly deeper warm surface */
+  --card: #FFFFFF;
+  --card-foreground: #1E2A32;
+
+  /* --- Foreground / Text --- */
+  --foreground: #1E2A32;
+  /* deep charcoal text */
+  --foreground-2: #3D4E5C;
+  /* secondary text */
+  --muted-foreground: #6B7A87;
+  /* tertiary / labels */
+  --subtle: #9AAAB6;
+  /* placeholder, disabled */
+
+  /* --- Primary Accent (Muted Slate-Blue) --- */
+  --primary: #2E6E8E;
+  /* restrained, not vivid */
+  --primary-hover: #275E7A;
+  --primary-foreground: #FFFFFF;
+  --primary-subtle: #EBF3F8;
+  /* very light tint for backgrounds */
+
+  /* --- Secondary / Neutral Surfaces --- */
+  --secondary: #F0EDE6;
+  /* warm neutral */
+  --secondary-foreground: #1E2A32;
+
+  /* --- Semantic Colors (muted, professional) --- */
+  --success: #2A6B55;
+  --success-bg: #EAF4EF;
+  --success-border: #B8DDD0;
+  --success-text: #1E5A44;
+
+  --warning: #7A5C2E;
+  --warning-bg: #F7F0E4;
+  --warning-border: #DFC89A;
+  --warning-text: #6A4E22;
+
+  --danger: #8B3A3A;
+  --danger-bg: #F5EAEA;
+  --danger-border: #DDB8B8;
+  --danger-text: #7A2E2E;
+
+  --info: #2E5E8E;
+  --info-bg: #EAF0F8;
+  --info-border: #B8CEDD;
+  --info-text: #24507A;
+
+  --neutral-bg: #F0EDE6;
+  --neutral-border: #D8D2C8;
+  --neutral-text: #5A6470;
+
+  --purple-bg: #EEE8F8;
+  --purple-border: #CBBCE8;
+  --purple-text: #5A3E8A;
+
+  /* --- Borders --- */
+  --border: #E2DDD6;
+  /* warm neutral border */
+  --border-strong: #CEC9C1;
+  --input: #E2DDD6;
+  --ring: #2E6E8E;
+
+  /* --- Sidebar --- */
+  --sidebar-bg: #1C2B35;
+  /* deep charcoal, slightly warm */
+  --sidebar-bg-hover: #253542;
+  --sidebar-bg-active: #233040;
+  --sidebar-border: #28394A;
+  --sidebar-accent: #2E6E8E;
+  /* muted slate-blue — not gold/sand */
+  --sidebar-text: #8AA0B0;
+  --sidebar-text-active: #E8EFF4;
+  --sidebar-label: #4A6070;
+  /* section labels */
+
+  /* --- Reservation Calendar Status Colors --- */
+  --cal-confirmed: #2E6E8E;
+  /* slate-blue */
+  --cal-inhouse: #2A6B55;
+  /* deep green */
+  --cal-cleaning: #7A6030;
+  /* muted warm ochre — restrained */
+  --cal-maintenance: #8B3A3A;
+  /* muted red */
+  --cal-blocked: #6A7580;
+  /* cool grey */
+  --cal-today-bg: #F0EDE6;
+  /* warm parchment today column */
+}
+
+/* =========================================================
+   Base
+   ========================================================= */
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
-/* Custom slim scrollbars for ERP data tables and calendar */
+/* =========================================================
+   Scrollbars — slim & warm
+   ========================================================= */
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--background-2);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: #C5BDB3;
+  border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #A49D94;
 }
 
-/* Tabular numbers for financial and room matrices */
+/* =========================================================
+   Typography Utilities
+   ========================================================= */
+
+/* Tabular numbers for financial data */
 .font-tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Section label — uppercase tracked, letterpress feel */
+.ds-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Page title — strong hierarchy */
+.ds-page-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  line-height: 1.2;
+}
+
+/* Module path label */
+.ds-breadcrumb {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* =========================================================
+   Form Inputs — squared, warm
+   ========================================================= */
+
+.input-base {
+  background-color: var(--card);
+  border: 1px solid var(--input);
+  border-radius: 2px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--foreground);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.input-base:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(46, 110, 142, 0.14);
+}
+
+.input-base::placeholder {
+  color: var(--subtle);
+}
+
+/* =========================================================
+   Table Utilities — ledger aesthetic
+   ========================================================= */
+
+.ds-table-row {
+  transition: background-color 0.1s ease;
+  border-left: 2px solid transparent;
+}
+
+.ds-table-row:hover {
+  background-color: var(--background-2);
+  border-left-color: var(--primary);
+}
+
+/* =========================================================
+   Animations
+   ========================================================= */
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.15s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* =========================================================
+   Design System Global Normalizations
+   Applies new flat enterprise tokens across modules
+   ========================================================= */
+
+.rounded-2xl,
+.rounded-xl,
+.rounded-lg {
+  border-radius: 2px !important;
+}
+
+.border-slate-200,
+.border-slate-200\/90,
+.border-slate-200\/80,
+.border-slate-200\/60 {
+  border-color: #E2DDD6 !important;
+}
+
+.shadow-2xs,
+.shadow-sm {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
 }
