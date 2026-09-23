@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useERP } from '@/context/ERPContext';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -41,6 +41,16 @@ export function FollowUpCenterView() {
   const propertyFiltered = followUps.filter(
     (f) => selectedPropertyId === 'all' || f.propertyId === selectedPropertyId
   );
+
+  // Dynamic date labels
+  const todayLabel = useMemo(() => {
+    return new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  }, []);
+  const tomorrowLabel = useMemo(() => {
+    const t = new Date();
+    t.setDate(t.getDate() + 1);
+    return t.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  }, []);
 
   // Calculate live counters
   const countOverdue = propertyFiltered.filter((f) => f.status === 'Overdue' || f.urgency === 'Overdue').length;
@@ -133,7 +143,7 @@ export function FollowUpCenterView() {
               <AlertTriangle className="w-4 h-4 text-rose-600" />
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-rose-700 mt-1 font-tabular">
-              {countOverdue > 0 ? countOverdue : 4}
+              {countOverdue}
             </div>
             <span className="text-[11px] text-rose-600 font-medium">Immediate response needed</span>
           </div>
@@ -153,9 +163,9 @@ export function FollowUpCenterView() {
               <Clock className="w-4 h-4 text-teal-600" />
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-teal-800 mt-1 font-tabular">
-              {countDueToday > 0 ? countDueToday : 18}
+              {countDueToday}
             </div>
-            <span className="text-[11px] text-teal-700 font-medium">Scheduled for 19 Sep</span>
+            <span className="text-[11px] text-teal-700 font-medium">Scheduled for {todayLabel}</span>
           </div>
 
           <div
@@ -173,9 +183,9 @@ export function FollowUpCenterView() {
               <Calendar className="w-4 h-4 text-sky-600" />
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-sky-800 mt-1 font-tabular">
-              {countTomorrow > 0 ? countTomorrow : 11}
+              {countTomorrow}
             </div>
-            <span className="text-[11px] text-sky-700 font-medium">Scheduled for 20 Sep</span>
+            <span className="text-[11px] text-sky-700 font-medium">Scheduled for {tomorrowLabel}</span>
           </div>
 
           <div
@@ -193,7 +203,7 @@ export function FollowUpCenterView() {
               <CheckCircle2 className="w-4 h-4 text-indigo-600" />
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-indigo-800 mt-1 font-tabular">
-              {countThisWeek > 0 ? countThisWeek : 42}
+              {countThisWeek}
             </div>
             <span className="text-[11px] text-indigo-700 font-medium">Total active queue</span>
           </div>

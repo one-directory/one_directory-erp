@@ -392,30 +392,49 @@ export function FinanceOverviewView({ initialTab = 'payments' }: { initialTab?: 
             </table>
           </div>
 
-          {/* Detailed Settlement Breakdown Box */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
-            <h3 className="text-sm font-bold text-slate-900">
-              Sample Settlement Calculation Breakdown (Gayatri Nest - August 2026)
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <div>
-                <span className="text-slate-400">Gross Billings:</span>
-                <p className="text-sm font-bold text-slate-900">₹2,45,000</p>
+          {/* Settlement Calculation Breakdown — live from first settlement */}
+          {(() => {
+            const s = filteredSettlements[0];
+            if (!s) return null;
+            const totalDeductions = s.taxes + s.otaCommission + s.otherDeductions;
+            const netAfterDeductions = s.grossRevenue - totalDeductions;
+            const period = s.period;
+            return (
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                <h3 className="text-sm font-bold text-slate-900">
+                  Settlement Calculation Breakdown — {s.propertyName} ({period})
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div>
+                    <span className="text-slate-400">Gross Billings:</span>
+                    <p className="text-sm font-bold text-slate-900">
+                      ₹{s.grossRevenue.toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">GST + OTA Commission:</span>
+                    <p className="text-sm font-bold text-rose-600">
+                      -₹{totalDeductions.toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">
+                      Management Fee ({s.managementFeePct}%):
+                    </span>
+                    <p className="text-sm font-bold text-slate-900">
+                      -₹{s.managementFee.toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Owner Payout:</span>
+                    <p className="text-sm font-bold text-teal-700">
+                      ₹{s.ownerShare.toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className="text-slate-400">GST + OTA Commission:</span>
-                <p className="text-sm font-bold text-rose-600">-₹47,600</p>
-              </div>
-              <div>
-                <span className="text-slate-400">OD Fee (15% Net):</span>
-                <p className="text-sm font-bold text-slate-900">-₹28,350</p>
-              </div>
-              <div>
-                <span className="text-slate-400">Owner Payout:</span>
-                <p className="text-sm font-bold text-teal-700">₹1,60,650</p>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
         )
       )}
